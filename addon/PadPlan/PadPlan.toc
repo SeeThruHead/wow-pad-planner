@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: PadPlan
+## Notes: Puts a layout from the WoW Forever gamepad bar planner on the gamepad bars (and SNRN Backhand's back-button slots). /padplan
+## Author: SeeThruHead
+## Version: 0.2.0
+## OptionalDeps: Backhand
+## SavedVariablesPerCharacter: PadPlanCharDB
+
+PadPlanData.lua
+Import.lua
+PadPlan.lua

@@ -1,0 +1,18 @@
+name: Release the PadPlan addon
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p dist && cd addon && zip -qr ../dist/PadPlan.zip PadPlan
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/PadPlan.zip --title "PadPlan $GITHUB_REF_NAME" --notes "Unzip PadPlan.zip into World of Warcraft/_forever_/Interface/AddOns/. In game, /padplan import and paste the code from the planner, then /padplan apply."

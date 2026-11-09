@@ -1,0 +1,17 @@
+{
+  "name": "wow-pad-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "catalog": "python3 -I tools/build-catalog.py",
+    "build": "python3 -I build.py",
+    "check:starters": "node tools/check-starters.mjs",
+    "test:page": "bun run build && node tools/page-test.mjs",
+    "test:addon": "lua tools/addon-test.lua",
+    "package:addon": "mkdir -p dist && rm -f dist/PadPlan.zip && cd addon && zip -qr ../dist/PadPlan.zip PadPlan",
+    "check": "bun run check:starters && bun run test:page && bun run test:addon"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.1"
+  }
+}

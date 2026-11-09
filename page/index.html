@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WoW Forever gamepad bar planner</title>
+<style>/*STYLE*/</style>
+</head>
+<body>
+<header>
+  <h1>Gamepad bar planner</h1>
+  <span class="sub">Plan WoW Forever's gamepad bars for any class and controller. Layouts are saved in this browser. <a href="https://github.com/SeeThruHead/wow-pad-planner">Source and addon</a></span>
+</header>
+<main>
+  <section>
+    <div class="panel">
+      <div class="toolbar">
+        <label class="sub">Layout <select id="layout-pick"></select></label>
+        <input type="text" id="layout-name" title="Layout name" style="width:260px">
+        <button id="new">New</button>
+        <button id="duplicate">Duplicate</button>
+        <button id="delete">Delete</button>
+      </div>
+      <p class="sub" id="readonly-hint" hidden>Built-in layouts are read-only. Change anything and it becomes your own copy.</p>
+      <div class="toolbar">
+        <label class="sub">Class <select id="class-pick"></select></label>
+        <label class="sub">Controller <select id="controller-pick"></select></label>
+        <label class="sub">Your level <input type="number" id="level" min="1" max="60" style="width:62px"></label>
+      </div>
+      <div class="toolbar" id="sets"></div>
+      <div class="stage-wrap"><div class="stage" id="stage"></div></div>
+      <p class="layer-hint">With no trigger held, the face buttons belong to the game (interact, inspect, back, jump), so they can't hold spells. Drag a spell onto a slot, drag between slots to swap, right-click a slot to empty it. On a touch screen, tap a spell and then a slot.</p>
+      <div id="back" hidden>
+        <h2 style="margin-top:14px">Back buttons</h2>
+        <p class="layer-hint" style="margin-top:0">Back buttons become extra slots on every trigger layer through the SNRN Backhand addon: Steam Input sends each one as a spare key and Backhand turns the key into a slot. Mark a button as used by something else to keep it free. These slots are the same in all three sets.</p>
+        <div id="back-settings"></div>
+        <div class="toolbar" style="margin-top:8px"><button id="mirror">Mirror this set's d-pad onto the back buttons</button><span class="sub">Lets you cast your d-pad spells without leaving the stick.</span></div>
+        <div class="paddles" id="paddles"></div>
+      </div>
+      <div class="details" id="details"></div>
+    </div>
+
+    <div class="panel notes">
+      <h2>Why it's laid out this way</h2>
+      <textarea id="why" placeholder="Notes about this layout"></textarea>
+    </div>
+
+    <div class="panel controls">
+      <h2>Every control</h2>
+      <table id="controls"></table>
+    </div>
+
+    <div class="panel notes">
+      <h2>Steam Input</h2>
+      <ol id="steam-steps"></ol>
+      <h2 style="margin-top:12px">Putting it in the game</h2>
+      <ol>
+        <li>Install the <a href="https://github.com/SeeThruHead/wow-pad-planner/releases/latest">PadPlan addon</a>: unzip it into <code>World of Warcraft/_forever_/Interface/AddOns/</code>. For the back-button slots, also install <a href="https://www.curseforge.com/wow/addons/snrn-backhand">SNRN Backhand</a>.</li>
+        <li>Press <strong>Copy code for the addon</strong>. In game, type <code>/padplan import</code>, paste the code (Ctrl+V) and press Import. The addon keeps it for that character.</li>
+        <li>In gamepad mode and out of combat, type <code>/padplan apply</code>. It places every slot of all three sets the way the gamepad bar's own edit mode does, so the server keeps them. <code>/padplan check</code> lists slots that differ from the layout.</li>
+        <li>Spells you haven't learned yet are skipped. Run <code>/padplan apply</code> again after a trainer visit; spells always go on at their highest rank.</li>
+        <li>Macros become character macros named <code>PP ...</code>, so they need free character macro slots.</li>
+        <li>Prefer a file? <strong>Download PadPlanData.lua</strong> and put it in the PadPlan folder instead; an imported code takes priority until <code>/padplan forget</code>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <h2>Spells</h2>
+    <div class="toolbar"><input type="text" id="search" placeholder="Search" style="flex:1"></div>
+    <div class="toolbar">
+      <button id="addon-code">Copy code for the addon</button>
+      <button id="save-wow">Download PadPlanData.lua</button>
+    </div>
+    <div id="addon-code-box" hidden>
+      <textarea id="addon-code-text" readonly></textarea>
+      <p class="sub">In game: <code>/padplan import</code>, paste, Import, then <code>/padplan apply</code>. <a href="https://github.com/SeeThruHead/wow-pad-planner/releases/latest">Get the PadPlan addon</a>.</p>
+    </div>
+    <div class="toolbar">
+      <button id="share">Share code</button>
+      <button id="import">Import</button>
+      <button id="export">Export file</button>
+    </div>
+    <div id="share-box" hidden>
+      <textarea id="share-text" placeholder="Paste a layout code here"></textarea>
+      <div class="toolbar"><button id="import-code">Import this code</button><button id="import-file-button">Import a file</button></div>
+    </div>
+    <div class="palette" id="palette"></div>
+  </aside>
+</main>
+<div class="toast" id="toast"></div>
+<div id="tip" role="tooltip" hidden></div>
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+<script>window.CATALOG = /*CATALOG*/; window.ICONS = /*ICONS*/;</script>
+<script>/*CONTROLLERS*/</script>
+<script>/*STARTERS*/</script>
+<script>/*APP*/</script>
+</body>
+</html>
