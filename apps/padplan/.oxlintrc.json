@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../packages/lint/oxlintrc.json"],
+  "ignorePatterns": ["flow/**"],
+  "rules": {
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": ["_tag", "_id"]
+      }
+    ]
+  }
+}

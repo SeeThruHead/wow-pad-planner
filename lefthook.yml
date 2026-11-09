@@ -1,0 +1,8 @@
+pre-commit:
+  commands:
+    affected:
+      run: bun run moon run :typecheck :lint --affected
+pre-push:
+  commands:
+    test:
+      run: bun run moon run :test --affected

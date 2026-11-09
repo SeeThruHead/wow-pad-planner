@@ -1,0 +1,39 @@
+{
+  "name": "padplan",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "bun --bun vitest run",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test",
+    "dev:server": "mkdir -p .data && DATA_DIR=./.data PORT=3000 PUBLIC_URL=http://localhost:3000 bun --watch src/app/server.ts",
+    "dev:client": "vite",
+    "build:client": "vite build",
+    "test:look": "bun run build:client && node tools/look-test.mjs"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.1.2",
+    "@effect/platform-bun": "4.1.2",
+    "@effect/sql-sqlite-bun": "4.1.2",
+    "effect": "4.1.2",
+    "foldkit": "0.170.0",
+    "openid-client": "6.8.9"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.64.1",
+    "@effect/vitest": "4.1.2",
+    "@foldkit/vite-plugin": "0.29.0",
+    "@padplan/lint": "workspace:*",
+    "@types/bun": "1.4.3",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "playwright-core": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

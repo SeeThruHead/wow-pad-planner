@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+: "${IMAGE:?}" "${REGISTRY_TOKEN:?}" "${GITHUB_SHA:?}"
+registry="${IMAGE%%/*}"
+tag="$IMAGE:$GITHUB_SHA"
+printf '%s' "$REGISTRY_TOKEN" | docker login "$registry" -u sth --password-stdin
+docker build --platform linux/amd64 --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+  --build-arg "REVISION=${GITHUB_SHA:0:7}" -f apps/padplan/Dockerfile -t "$tag" -t "$IMAGE:latest" .
+docker push "$tag"
+docker push "$IMAGE:latest"
+digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")"
+echo "$tag@${digest##*@}" > image.txt
+cat image.txt

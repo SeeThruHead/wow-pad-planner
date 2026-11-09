@@ -1,0 +1,22 @@
+name: padplan
+on:
+  push:
+    branches: [main]
+
+jobs:
+  ship:
+    runs-on: boat
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish
+        env:
+          IMAGE: ${{ vars.IMAGE }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: ./scripts/ci/publish
+      - name: Deploy through homelab
+        env:
+          STACK: padplan
+          IMAGE: ${{ vars.IMAGE }}
+          GITEA_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REVISION: ${{ github.sha }}
+        run: ./scripts/ci/reconcile

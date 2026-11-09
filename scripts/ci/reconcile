@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+: "${STACK:?}" "${IMAGE:?}" "${GITEA_TOKEN:?}" "${REVISION:?}" "${GITHUB_SERVER_URL:?}" "${GITHUB_REPOSITORY:?}"
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0=credential.helper
+export GIT_CONFIG_VALUE_0='!f() { echo username=sth; echo "password=$GITEA_TOKEN"; }; f'
+owner="$GITHUB_SERVER_URL/${GITHUB_REPOSITORY%%/*}"
+pinned="$(cat image.txt)"
+head=$(git ls-remote "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" refs/heads/main | cut -f1)
+if [ "$head" != "$REVISION" ]; then
+  echo "A newer commit exists; skipping this deployment."
+  exit 0
+fi
+case "$pinned" in
+  "$IMAGE":*@sha256:*) ;;
+  *) echo "Unexpected image reference" >&2; exit 1 ;;
+esac
+workdir="$(mktemp -d)"
+git clone --depth 1 "$owner/homelab.git" "$workdir"
+cd "$workdir"
+if [ ! -f "hosts/ubuntu-docker/stacks/$STACK/compose.yaml" ]; then
+  echo "Image published. Bootstrap the homelab stack $STACK with this digest: $pinned"
+  exit 0
+fi
+git config user.name "padplan CI"
+git config user.email "padplan-ci@localhost"
+./scripts/ci/pin "$STACK" "$IMAGE" "${pinned##*@}"
+if git diff --quiet; then
+  echo "Homelab already uses this image."
+  exit 0
+fi
+git add "hosts/ubuntu-docker/stacks/$STACK/compose.yaml"
+git diff --cached --stat
+git commit -m "deploy: $STACK wow-pad-planner@${REVISION}"
+git pull --rebase origin main
+git push origin HEAD:main
