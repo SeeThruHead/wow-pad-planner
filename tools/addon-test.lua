@@ -64,13 +64,35 @@ local function Fresh(saved)
     GetCurrentBindingSet = function() return 2 end
     UnitClass = function() return "Warlock", "WARLOCK" end
     strtrim = function(text) return (text:gsub("^%s+", ""):gsub("%s+$", "")) end
-    CreateFrame = function()
-        local frame = { events = {} }
-        function frame:RegisterEvent(event) self.events[event] = true end
-        function frame:SetScript(_, handler) self.handler = handler end
+    local function widget()
+        local object = { events = {}, scripts = {}, shown = false }
+        return setmetatable(object, {
+            __index = function(_, key)
+                if key == "RegisterEvent" then return function(self, event) self.events[event] = true end end
+                if key == "SetScript" then
+                    return function(self, name, handler)
+                        self.scripts[name] = handler
+                        if name == "OnEvent" then self.handler = handler end
+                    end
+                end
+                if key == "Show" then return function(self) self.shown = true end end
+                if key == "Hide" then return function(self) self.shown = false end end
+                if key == "SetText" then return function(self, value) self.value = value end end
+                if key == "CreateFontString" then return function() return widget() end end
+                return function() end
+            end
+        })
+    end
+    world.widgets = {}
+    CreateFrame = function(_, name)
+        local frame = widget()
         world.frames[#world.frames + 1] = frame
+        if name then world.widgets[name] = frame end
         return frame
     end
+    UIParent = {}
+    UnitName = function() return world.name or "Mimesis" end
+    GetNormalizedRealmName = function() return "Seethruhead" end
     SlashCmdList = {
         BACKHAND = function(message)
             world.backhandCalls[#world.backhandCalls + 1] = message
@@ -88,9 +110,12 @@ local function Fresh(saved)
     return world
 end
 
-local function Load(world, dataFile)
+local function Load(world, dataFile, autoload)
     local ns = {}
     if dataFile then dofile(dataFile) end
+    if dataFile and autoload ~= "v1" then
+        PadPlanData = { version = 2, characters = { ["Mimesis-Seethruhead"] = { autoload = autoload or "auto", plan = PadPlanData } } }
+    end
     assert(loadfile("addon/PadPlan/Import.lua"))("PadPlan", ns)
     assert(loadfile("addon/PadPlan/PadPlan.lua"))("PadPlan", ns)
     world.ns = ns
@@ -198,7 +223,7 @@ Check(Snapshot(imported) == fileResult, "an imported code places exactly what th
 
 local replaced = Fresh(PadPlanCharDB)
 Load(replaced, "dist/shane-data.lua")
-PadPlanData.name = "A newer layout"
+PadPlanData.characters["Mimesis-Seethruhead"].plan.name = "A newer layout"
 Login(replaced)
 Check(PadPlanCharDB.plan == nil and Printed(replaced, "replaces the layout imported earlier") and Printed(replaced, "\"A newer layout\""), "a newly installed PadPlanData.lua replaces an older imported code")
 
@@ -214,6 +239,39 @@ Load(oldBackhand, "dist/shane-data.lua")
 BackhandCharDB = { nativeSlots = {}, fallbackActions = { { [1] = { type = "spell", id = 686 } }, {}, {}, {} } }
 Login(oldBackhand)
 Check(Printed(oldBackhand, "keeps this character's back-button spells in its own list"), "chat says when Backhand keeps its own spell list instead of slots")
+
+local alt = Fresh(nil)
+alt.name = "Banky"
+Load(alt, "dist/shane-data.lua")
+Login(alt)
+Check(next(alt.actions) == nil and #alt.printed == 0, "a character the file has no layout for keeps its bars untouched")
+
+local otherClass = Fresh(nil)
+UnitClass = function() return "Mage", "MAGE" end
+Load(otherClass, "dist/shane-data.lua", "v1")
+UnitClass = function() return "Mage", "MAGE" end
+Login(otherClass)
+Check(next(otherClass.actions) == nil, "an old single-layout file never touches a character of another class")
+
+local asking = Fresh(nil)
+Load(asking, "dist/shane-data.lua", "ask")
+Login(asking)
+Check(next(asking.actions) == nil and asking.widgets.PadPlanAskFrame and asking.widgets.PadPlanAskFrame.shown, "Ask me shows a popup and changes nothing until you answer")
+asking.widgets.PadPlanAskApply.scripts.OnClick()
+Check(Snapshot(asking) == fileResult, "pressing Apply on the popup places the layout")
+
+local declined = Fresh(nil)
+Load(declined, "dist/shane-data.lua", "ask")
+Login(declined)
+declined.widgets.PadPlanAskLater.scripts.OnClick()
+Check(next(declined.actions) == nil and not declined.widgets.PadPlanAskFrame.shown, "Not now closes the popup and leaves the bars alone")
+
+local manual = Fresh(nil)
+Load(manual, "dist/shane-data.lua", "off")
+Login(manual)
+Check(next(manual.actions) == nil and Printed(manual, "is waiting for this character"), "Off only says a layout is waiting")
+PadPlan_OnAddonCompartmentClick(nil, "LeftButton")
+Check(Snapshot(manual) == fileResult, "with Off, clicking PadPlan in the addon menu applies it")
 
 local damaged = Fresh(nil)
 local damagedNs = Load(damaged, nil)

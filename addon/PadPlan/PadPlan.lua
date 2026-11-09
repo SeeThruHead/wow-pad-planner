@@ -104,9 +104,46 @@ local function PaddleSlot(slots, layer, paddleIndex)
     return slots and slots[(PANEL[layer] - 1) * 4 + paddleIndex]
 end
 
+local function Normalize(text)
+    return ((text or ""):gsub("%s", "")):lower()
+end
+
+local function MyKeys()
+    local name = UnitName("player") or ""
+    local realm = (GetNormalizedRealmName and GetNormalizedRealmName()) or (GetRealmName and GetRealmName()) or ""
+    return Normalize(name .. "-" .. realm), Normalize(name)
+end
+
+local function FileEntry()
+    local data = PadPlanData
+    if type(data) ~= "table" then return nil end
+    if type(data.characters) == "table" then
+        local full, short = MyKeys()
+        for key, entry in pairs(data.characters) do
+            local wanted = Normalize(key)
+            if wanted == full or wanted == short then return entry end
+        end
+        return nil
+    end
+    local _, playerClass = UnitClass("player")
+    if type(data.sets) == "table" and data.class == playerClass then return { autoload = "ask", plan = data } end
+    return nil
+end
+
+local function FilePlan()
+    local entry = FileEntry()
+    return entry and entry.plan
+end
+
 local function CurrentPlan()
     local imported = PadPlanCharDB and PadPlanCharDB.plan
-    return imported or PadPlanData
+    return imported or FilePlan()
+end
+
+local function Autoload()
+    if PadPlanCharDB.plan then return "auto" end
+    local entry = FileEntry()
+    return entry and entry.autoload or "ask"
 end
 
 local function ForEachSlot(visit)
@@ -315,8 +352,9 @@ local function Apply(automatic)
 end
 
 local function FileChanged()
-    if not PadPlanData then return false end
-    local signature = Serialize(PadPlanData)
+    local mine = FilePlan()
+    if not mine then return false end
+    local signature = Serialize(mine)
     if PadPlanCharDB.fileSignature == signature then return false end
     PadPlanCharDB.fileSignature = signature
     return true
@@ -330,7 +368,14 @@ local function ApplyIfChanged()
     local plan = CurrentPlan()
     if not plan then return end
     ReserveKeys(plan)
-    if PadPlanCharDB.applied == Signature(plan) and not PadPlanCharDB.waitingFor then return end
+    local accepted = PadPlanCharDB.applied == Signature(plan)
+    if accepted and not PadPlanCharDB.waitingFor then return end
+    if accepted then return Apply(true) end
+    local mode = Autoload()
+    if mode == "off" then
+        return Print("A new layout (\"%s\") is waiting for this character. Apply it from PadPlan in the addon menu.", plan.name or "layout")
+    end
+    if mode == "ask" then return ns.Ask(plan) end
     Apply(true)
 end
 
@@ -413,6 +458,41 @@ local function Forget()
     ApplyIfChanged()
 end
 
+local function AskFrame()
+    if ns.askFrame then return ns.askFrame end
+    local frame = CreateFrame("Frame", "PadPlanAskFrame", UIParent, "BasicFrameTemplateWithInset")
+    frame:SetSize(420, 150)
+    frame:SetPoint("CENTER", 0, 120)
+    frame:SetFrameStrata("DIALOG")
+    local text = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", 16, -34)
+    text:SetPoint("TOPRIGHT", -16, -34)
+    text:SetJustifyH("LEFT")
+    local apply = CreateFrame("Button", "PadPlanAskApply", frame, "UIPanelButtonTemplate")
+    apply:SetSize(140, 28)
+    apply:SetPoint("BOTTOMLEFT", 24, 16)
+    apply:SetText("Apply")
+    apply:SetScript("OnClick", function()
+        frame:Hide()
+        Apply(false)
+    end)
+    local later = CreateFrame("Button", "PadPlanAskLater", frame, "UIPanelButtonTemplate")
+    later:SetSize(140, 28)
+    later:SetPoint("BOTTOMRIGHT", -24, 16)
+    later:SetText("Not now")
+    later:SetScript("OnClick", function() frame:Hide() end)
+    frame.text = text
+    ns.askFrame = frame
+    return frame
+end
+
+function ns.Ask(plan)
+    local frame = AskFrame()
+    frame.text:SetText(string.format("PadPlan has a new layout for this character: \"%s\".\n\nPut it on your gamepad bars now?", plan.name or "layout"))
+    frame:Show()
+    ns.asking = plan
+end
+
 function PadPlan_OnAddonCompartmentClick(_, button)
     if button == "RightButton" then return ns.ShowImport() end
     Apply(false)
@@ -449,7 +529,7 @@ events:SetScript("OnEvent", function(_, event, name)
         C_Timer.After(LOGIN_DELAY, ApplyIfChanged)
     elseif event == "PLAYER_REGEN_ENABLED" then
         if ns.pending then ApplyIfChanged() end
-    elseif PadPlanCharDB.waitingFor then
+    elseif PadPlanCharDB.waitingFor and CurrentPlan() and PadPlanCharDB.applied == Signature(CurrentPlan()) then
         C_Timer.After(1, function() Apply(true) end)
     end
 end)
