@@ -686,7 +686,7 @@ const toLua = (plan) => {
   return `-- ${plan.name}, from the gamepad bar planner.\nPadPlanData = {\n  version = 1,\n  name = ${luaString(plan.name)},\n  class = ${luaString(plan.class)},\n  paddleOrder = { ${slots.map(luaString).join(", ")} },\n  paddleKeys = { ${backKeys(plan).map(luaString).join(", ")} },\n  reservedKeys = { ${otherKeys(plan).map(luaString).join(", ")} },\n  sets = {\n${sets}\n  },\n  paddles = {\n${paddles}\n  },\n}\n`;
 };
 
-const normalizeKey = (text) => text.trim().toUpperCase().replace(/\s*\+\s*/g, "-");
+const normalizeKey = (text) => text.trim().toUpperCase().split(/\s*\+\s*/).map((part) => part.replace(/\s+/g, "")).join("-");
 const otherKeys = (plan) => (plan.otherKeys || []).map(normalizeKey).filter(Boolean);
 
 const backKeys = (plan) => slotBackIds(plan).map((id) => ((plan.back || {})[id] || {}).key || "");

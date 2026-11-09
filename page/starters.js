@@ -142,7 +142,7 @@ const STARTERS = [
     },
   ]),
   starter("shane", "Shane's level 10 Warlock (Steam Controller)", "WARLOCK",
-    "Thumb-on-the-stick style: no attacks on the d-pad on any layer, so the left thumb never leaves the stick. Every attack and DoT is on the back buttons or a trigger plus a face button, and everything needed in combat is in set 1, so there's no set switching in a fight. The back buttons with no trigger hold the four spells pressed most: R4 Shadow Bolt, R5 Corruption, L4 Curse of Agony, L5 Immolate. RT holds the rest of the damage and Pet Attack. LT holds Life Tap, Curse of Weakness and the emergency Healthstone. LT + RT holds spells for the next levels (Health Funnel, Searing Pain, Rain of Fire, Curse of Recklessness), which PadPlan places as soon as they're learned. The d-pad holds only pets, summons, buffs and stones. Set 2 is for rare out-of-combat spells. Voice chat is a long press of Select, and its keys (Ctrl+Shift+F1 to F6) are listed as keys other tools send, so WoW ignores them. The back buttons send F9, F10, F11 and F12 (L4, L5, R4, R5), keys Steam's keyboard picker shows; PadPlan clears WoW's bag bindings on them and hands them to Backhand.",
+    "Thumb-on-the-stick style: no attacks on the d-pad on any layer, so the left thumb never leaves the stick. Every attack and DoT is on the back buttons or a trigger plus a face button, and everything needed in combat is in set 1, so there's no set switching in a fight. The back buttons with no trigger hold the four spells pressed most: R4 Shadow Bolt, R5 Corruption, L4 Curse of Agony, L5 Immolate. RT holds the rest of the damage and Pet Attack. LT holds Life Tap, Curse of Weakness and the emergency Healthstone. LT + RT holds spells for the next levels (Health Funnel, Searing Pain, Rain of Fire, Curse of Recklessness), which PadPlan places as soon as they're learned. The d-pad holds only pets, summons, buffs and stones. Set 2 is for rare out-of-combat spells. Voice chat is a long press of Select, and its keys (Home, Insert, Delete, End, Page Up, Page Down) are listed as keys other tools send, so WoW ignores them. The back buttons send F9, F10, F11 and F12 (L4, L5, R4, R5), keys Steam's keyboard picker shows; PadPlan clears WoW's bag bindings on them and hands them to Backhand.",
     [
       {
         base: { DU: "Summon Voidwalker", DR: "Summon Imp", DD: "Pet Follow", DL: "Demon Skin" },
@@ -159,7 +159,7 @@ const STARTERS = [
       controller: "steam",
       level: 10,
       useBackButtons: true,
-      otherKeys: ["Ctrl+Shift+F1", "Ctrl+Shift+F2", "Ctrl+Shift+F3", "Ctrl+Shift+F4", "Ctrl+Shift+F5", "Ctrl+Shift+F6"],
+      otherKeys: ["Home", "Insert", "Delete", "End", "Page Up", "Page Down"],
       paddles: layers({ base: { R4: "Shadow Bolt", R5: "Corruption", L4: "Curse of Agony", L5: "Immolate" } }),
       back: {
         L4: { use: "slot", key: "F9", note: "" },

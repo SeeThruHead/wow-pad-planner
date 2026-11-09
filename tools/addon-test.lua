@@ -11,7 +11,7 @@ local function Copy(source)
 end
 
 local function Fresh(saved)
-    local world = { cursor = nil, actions = {}, macros = {}, printed = {}, backhandCalls = {}, bindings = { F9 = "OPENBAG3", F12 = "OPENALLBAGS", ["CTRL-SHIFT-F2"] = "SOMETHING" }, combat = false, frames = {} }
+    local world = { cursor = nil, actions = {}, macros = {}, printed = {}, backhandCalls = {}, bindings = { F9 = "OPENBAG3", F12 = "OPENALLBAGS", PAGEDOWN = "CHATPAGEDOWN" }, combat = false, frames = {} }
     world.known = Copy(START_KNOWN)
     local function byId(id)
         for name, known in pairs(world.known) do
@@ -144,7 +144,7 @@ local function NotLearnedLine(world)
     return ""
 end
 Check(NotLearnedLine(first):find("Summon Voidwalker", 1, true) ~= nil and NotLearnedLine(first):find("Pet Attack", 1, true) == nil, "the spells not learned yet are named")
-Check(first.overrides["CTRL-SHIFT-F1"] == "PadPlanNoop" and first.overrides["CTRL-SHIFT-F6"] == "PadPlanNoop" and first.bindings["CTRL-SHIFT-F2"] == nil, "keys another tool sends are cleared and swallowed so WoW ignores them")
+Check(first.overrides.HOME == "PadPlanNoop" and first.overrides.PAGEUP == "PadPlanNoop" and first.bindings.PAGEDOWN == nil, "keys another tool sends are cleared and swallowed so WoW ignores them")
 local fileResult = Snapshot(first)
 local saved = PadPlanCharDB
 
