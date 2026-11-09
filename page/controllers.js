@@ -34,6 +34,5 @@ const BACK_POSITION = {
   LB4: ["27%", 56], RB4: ["73%", 56],
 };
 
-const SAFE_KEYS = ["F23", "F24", "F9", "F10", "F19", "F11"];
-const WINDOWS_ONLY_KEYS = ["F13", "F14", "F15", "F16", "F17", "F18", "F20", "F21", "F22"];
-const FREE_KEYS = [...SAFE_KEYS, ...WINDOWS_ONLY_KEYS];
+const FREE_KEYS = ["F9", "F10", "F11", "F12", "F6", "F7", "F8"];
+const KEY_NOTES = { F6: "", F7: "", F8: "bag key in WoW, PadPlan frees it", F9: "bag key in WoW, PadPlan frees it", F10: "bag key in WoW, PadPlan frees it", F11: "bag key in WoW, PadPlan frees it", F12: "bag key in WoW, PadPlan frees it" };

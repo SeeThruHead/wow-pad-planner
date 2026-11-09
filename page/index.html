@@ -21,6 +21,7 @@
         <button id="duplicate">Duplicate</button>
         <button id="delete">Delete</button>
       </div>
+      <div class="banner" id="banner" hidden></div>
       <p class="sub" id="readonly-hint" hidden>Built-in layouts are read-only. Change anything and it becomes your own copy.</p>
       <div class="toolbar">
         <label class="sub">Class <select id="class-pick"></select></label>
@@ -28,14 +29,15 @@
         <label class="sub">Your level <input type="number" id="level" min="1" max="60" style="width:62px"></label>
       </div>
       <div class="toolbar" id="sets"></div>
+      <div class="toolbar"><label class="toggle" id="use-back-label"><input type="checkbox" id="use-back"> Back buttons (Backhand addon)</label><span class="sub">Shows the back-button slots in the HUD.</span></div>
       <div class="stage-wrap"><div class="stage" id="stage"></div></div>
       <p class="layer-hint">With no trigger held, the face buttons belong to the game (interact, inspect, back, jump), so they can't hold spells. Drag a spell onto a slot, drag between slots to swap, right-click a slot to empty it. On a touch screen, tap a spell and then a slot.</p>
       <div id="back" hidden>
         <h2 style="margin-top:14px">Back buttons</h2>
-        <p class="layer-hint" style="margin-top:0">Back buttons become extra slots on every trigger layer through the SNRN Backhand addon: Steam Input sends each one as a spare key and Backhand turns the key into a slot. Mark a button as used by something else to keep it free. These slots are the same in all three sets.</p>
+        <p class="layer-hint" style="margin-top:0">Each back button becomes an extra slot on every trigger layer, drawn as the round 2 x 2 grid above each cluster, the way Backhand shows it in game. They're the same in all three sets. Mark a button as used by something else to keep it free.</p>
+        <div class="needs"><strong>What you need</strong><ol id="back-needs"></ol></div>
         <div id="back-settings"></div>
         <div class="toolbar" style="margin-top:8px"><button id="mirror">Mirror this set's d-pad onto the back buttons</button><span class="sub">Lets you cast your d-pad spells without leaving the stick.</span></div>
-        <div class="paddles" id="paddles"></div>
       </div>
       <div class="details" id="details"></div>
     </div>
@@ -47,6 +49,8 @@
 
     <div class="panel controls">
       <h2>Every control</h2>
+      <label class="sub" style="display:block;margin-bottom:8px">Keys other tools send through Steam, such as a voice chat app (comma-separated, like <code>Ctrl+Shift+F1</code>). PadPlan keeps WoW from acting on them.
+        <input type="text" id="other-keys" style="width:100%;margin-top:4px" placeholder="Ctrl+Shift+F1, Ctrl+Shift+F2"></label>
       <table id="controls"></table>
     </div>
 

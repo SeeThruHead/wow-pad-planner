@@ -13,10 +13,21 @@ const PAGE_UNIT_BUTTON = { DL: 1, DU: 2, DR: 3, DD: 4, X: 5, Y: 6, B: 7, A: 8 };
 const PAGE_UNIT_BAR = { base: 0, lt: 1, rt: 2, both: 3 };
 const ARROWS = { DU: "▲", DR: "▶", DD: "▼", DL: "◀" };
 const CLUSTERS = {
-  base: { dpad: [380, 140], face: [540, 140] },
-  lt: { dpad: [95, 235], face: [245, 235] },
-  rt: { dpad: [690, 235], face: [845, 235] },
-  both: { dpad: [380, 330], face: [540, 330] },
+  base: { dpad: [380, 240], face: [540, 240] },
+  lt: { dpad: [95, 335], face: [245, 335] },
+  rt: { dpad: [690, 335], face: [845, 335] },
+  both: { dpad: [380, 480], face: [540, 480] },
+};
+const BACK_GRIDS = { base: [460, 76], lt: [170, 196], rt: [767, 196], both: [460, 338] };
+const BACK_CELL = {
+  L4: [-23, 0], L5: [-23, 46], R4: [23, 0], R5: [23, 46],
+  P1: [-23, 0], P2: [-23, 46], P3: [23, 0], P4: [23, 46],
+  LB4: [-23, 23], RB4: [23, 23],
+};
+const BACK_ROW = { L4: "upper", R4: "upper", P1: "upper", P3: "upper", L5: "lower", R5: "lower", P2: "lower", P4: "lower", LB4: "upper", RB4: "upper" };
+const BACK_GLYPH = {
+  upper: '<svg viewBox="0 0 30 30" width="26" height="26"><rect x="6" y="12" width="18" height="6" rx="3" fill="#cfe0f5"/></svg>',
+  lower: '<svg viewBox="0 0 30 30" width="26" height="26"><path d="M7 20 Q10 10 23 11" fill="none" stroke="#cfe0f5" stroke-width="5" stroke-linecap="round"/></svg>',
 };
 const DPAD_OFFSET = { DU: [0, -46], DR: [46, 0], DD: [0, 46], DL: [-46, 0] };
 const FACE_OFFSET = { Y: [0, -44], B: [44, 0], A: [0, 44], X: [-44, 0] };
@@ -139,7 +150,8 @@ const describe = (plan, entry) => {
   return lookup(plan, entry.ref) || { name: entry.ref, missing: true };
 };
 
-const slotBackIds = (plan) => controllerOf(plan).back.filter((id) => ((plan.back || {})[id] || {}).use !== "other");
+const usesBack = (plan) => Boolean(plan.useBackButtons) && controllerOf(plan).back.length > 0;
+const slotBackIds = (plan) => (usesBack(plan) ? controllerOf(plan).back.filter((id) => ((plan.back || {})[id] || {}).use !== "other") : []);
 
 const slotTitle = (plan, loc, info) => {
   const place = loc.kind === "paddle" ? `${layerName(plan, loc.layer)} + ${loc.key}` : `${layerName(plan, loc.layer)} + ${buttonName(plan, loc.key)}`;
@@ -333,24 +345,34 @@ const clusterNodes = (plan, layer) => {
   return [...dpadNodes, ...faceNodes];
 };
 
+const backGridNodes = (plan, layer) => {
+  const [x, y] = BACK_GRIDS[layer];
+  return slotBackIds(plan).map((key) => {
+    const node = slotNode(plan, { kind: "paddle", layer, key }, "round back", x + BACK_CELL[key][0], y + BACK_CELL[key][1]);
+    const face = node.querySelector(".face");
+    if (!entryAt(plan, { kind: "paddle", layer, key })) face.innerHTML = BACK_GLYPH[BACK_ROW[key]];
+    return node;
+  });
+};
+
 const renderStage = (plan) => {
   const names = controllerOf(plan).names;
   const labels = [
-    positioned("cluster-label", 300, 290, names.lt),
-    positioned("cluster-label", 640, 290, names.rt),
-    positioned("cluster-label", 432, 400, names.lt),
-    positioned("cluster-label plus", 460, 400, "+"),
-    positioned("cluster-label", 488, 400, names.rt),
+    positioned("cluster-label", 300, 390, names.lt),
+    positioned("cluster-label", 640, 390, names.rt),
+    positioned("cluster-label", 432, 552, names.lt),
+    positioned("cluster-label plus", 460, 552, "+"),
+    positioned("cluster-label", 488, 552, names.rt),
   ];
-  const rings = [setTip(positioned("ring", 300, 40, RING_SVG("var(--friendly)")), ringTip(plan, "friendly")), setTip(positioned("ring", 640, 40, RING_SVG("var(--hostile)")), ringTip(plan, "hostile"))];
-  el("stage").replaceChildren(...rings, ...LAYERS.flatMap((layer) => clusterNodes(plan, layer)), ...labels);
+  const rings = [setTip(positioned("ring", 300, 140, RING_SVG("var(--friendly)")), ringTip(plan, "friendly")), setTip(positioned("ring", 640, 140, RING_SVG("var(--hostile)")), ringTip(plan, "hostile"))];
+  el("stage").replaceChildren(...rings, ...LAYERS.flatMap((layer) => clusterNodes(plan, layer)), ...LAYERS.flatMap((layer) => backGridNodes(plan, layer)), ...labels);
 };
 
 const backRow = (plan, id) => {
-  const setting = (plan.back || {})[id] || { use: "slot", key: "F13", note: "" };
+  const setting = (plan.back || {})[id] || { use: "slot", key: "F9", note: "" };
   const row = document.createElement("div");
   row.className = "back-row";
-  const keys = FREE_KEYS.map((key) => `<option value="${key}"${key === setting.key ? " selected" : ""}>${key}${WINDOWS_ONLY_KEYS.includes(key) ? " (Windows only)" : ""}</option>`).join("");
+  const keys = FREE_KEYS.map((key) => `<option value="${key}"${key === setting.key ? " selected" : ""}>${key}</option>`).join("");
   row.innerHTML = `<strong>${escapeHtml(BACK_LABELS[id] || id)}</strong>
     <select data-field="use"><option value="slot"${setting.use === "slot" ? " selected" : ""}>Spell slots</option><option value="other"${setting.use === "other" ? " selected" : ""}>Used by something else</option></select>
     <label class="sub">${setting.use === "other" ? "Sends" : "Steam key"} <select data-field="key"><option value="">none</option>${keys}</select></label>
@@ -360,27 +382,30 @@ const backRow = (plan, id) => {
   return row;
 };
 
+const backNeeds = (plan) => {
+  const slots = slotBackIds(plan);
+  const keys = slots.map((id) => `${escapeHtml(BACK_LABELS[id] || id)} sends ${escapeHtml(((plan.back || {})[id] || {}).key || "a spare key")}`);
+  return [
+    'Install two addons: <a href="https://github.com/SeeThruHead/wow-pad-planner/releases/latest">PadPlan</a> and <a href="https://www.curseforge.com/wow/addons/snrn-backhand">SNRN Backhand</a>.',
+    `In Steam's controller settings for WoW, bind each back button to a keyboard key: ${keys.join(", ") || "mark at least one back button as a spell slot"}.`,
+    "Get this layout into the addon: <strong>Download PadPlanData.lua</strong> into the PadPlan folder, or <strong>Copy code for the addon</strong> and paste it with <code>/padplan import</code>.",
+    "Log in or reload. PadPlan places the layout by itself and tells Backhand which key each back button sends; nothing to type.",
+  ];
+};
+
 const renderBack = (plan) => {
   const controller = controllerOf(plan);
   const section = el("back");
-  if (controller.back.length === 0) {
+  el("use-back").checked = usesBack(plan);
+  el("use-back").disabled = controller.back.length === 0;
+  el("use-back-label").title = controller.back.length === 0 ? `The ${controller.name} has no back buttons.` : "";
+  if (!usesBack(plan)) {
     section.hidden = true;
     return;
   }
   section.hidden = false;
-  const slots = slotBackIds(plan);
+  el("back-needs").innerHTML = backNeeds(plan).map((text) => `<li>${text}</li>`).join("");
   el("back-settings").replaceChildren(...controller.back.map((id) => backRow(plan, id)));
-  const groups = LAYERS.map((layer) => {
-    const group = document.createElement("div");
-    group.className = "paddle-group";
-    group.innerHTML = `<h3>${escapeHtml(layerName(plan, layer))}</h3>`;
-    const grid = document.createElement("div");
-    grid.className = "paddle-grid";
-    grid.replaceChildren(...slots.map((key) => slotNode(plan, { kind: "paddle", layer, key }, "square", BACK_POSITION[key][0], BACK_POSITION[key][1])));
-    group.appendChild(grid);
-    return group;
-  });
-  el("paddles").replaceChildren(...groups);
 };
 
 const mirrorDpad = (plan) => {
@@ -502,7 +527,7 @@ const renderPalette = (plan) => {
 const controlRows = (plan) => {
   const controller = controllerOf(plan);
   const names = controller.names;
-  const backs = controller.back.map((id) => {
+  const backs = (usesBack(plan) ? controller.back : []).map((id) => {
     const setting = (plan.back || {})[id] || {};
     const text = setting.use === "other"
       ? `Used by something else${setting.note ? `: ${setting.note}` : ""}${setting.key ? ` (sends ${setting.key})` : ""}. No spell.`
@@ -533,6 +558,10 @@ const controlRows = (plan) => {
   ];
 };
 
+const renderOtherKeys = (plan) => {
+  el("other-keys").value = (plan.otherKeys || []).join(", ");
+};
+
 const renderControls = (plan) => {
   const rows = controlRows(plan).map((control) => {
     const row = document.createElement("tr");
@@ -555,18 +584,15 @@ const keyClashes = (plan) => {
   return sent.filter(([id, key]) => sent.some(([other, otherKey]) => other !== id && otherKey === key)).map(([id, key]) => `${id} and another back button both send ${key}.`);
 };
 
-const windowsOnlyKeys = (plan) =>
-  slotBackIds(plan).map((id) => [id, ((plan.back || {})[id] || {}).key]).filter(([, key]) => WINDOWS_ONLY_KEYS.includes(key));
-
 const steamSteps = (plan) => {
   const controller = controllerOf(plan);
   const names = controller.names;
   const slots = slotBackIds(plan);
   if (!controller.steamInput) return [`${controller.name}: nothing to set in Steam. The game reads it directly; leave Steam Input off or on its default gamepad layout.`];
-  const backSteps = controller.back.map((id) => {
+  const backSteps = (usesBack(plan) ? controller.back : []).map((id) => {
     const setting = (plan.back || {})[id] || {};
     if (setting.use === "other") return `${BACK_LABELS[id] || id}: not a spell slot, ${setting.note || "used by something else"}${setting.key ? ` (sends ${setting.key})` : ""}.`;
-    return `${BACK_LABELS[id] || id}: keyboard ${setting.key || "(pick a key above)"}.`;
+    return `${BACK_LABELS[id] || id}: keyboard ${setting.key || "(pick a key above)"}${KEY_NOTES[setting.key] ? ` (a ${KEY_NOTES[setting.key]})` : ""}.`;
   });
   const padSteps = controller.pads.map((pad, index) => {
     const setting = (plan.controls || {})[`PAD${index}`] || {};
@@ -580,9 +606,9 @@ const steamSteps = (plan) => {
     ...backSteps,
     ...padSteps,
     ...(controller.gyro ? [gyro.other ? `Gyro: leave it to ${gyro.note || "the other tool"}.` : `Gyro (optional): gyro to mouse, toggled with ${names.rs}.`] : []),
-    ...(slots.length ? [`In game, install SNRN Backhand, open /backhand and assign P1 to P${slots.length} by pressing ${slots.join(", ")} in that order.`] : []),
+    ...(slots.length ? [`In game, with SNRN Backhand and PadPlan installed, PadPlan tells Backhand these keys at login (${slots.map((id) => `${id} = Backhand P${slots.indexOf(id) + 1}`).join(", ")}); nothing to set by hand.`] : []),
     ...keyClashes(plan).map((text) => `Clash: ${text}`),
-    ...windowsOnlyKeys(plan).map(([id, key]) => `Linux, Steam Deck and Proton: ${id} sends ${key}, which Wine passes to WoW as no key at all (the standard Linux keymap treats F13 to F18 and F20 to F22 as media keys). Pick F9, F10, F11, F19, F23 or F24 instead.`),
+    ...(otherKeys(plan).length ? [`Keys other tools send (${otherKeys(plan).join(", ")}): PadPlan clears any WoW binding on them and keeps WoW from acting on them.`] : []),
   ];
 };
 
@@ -590,15 +616,46 @@ const renderSteps = (plan) => {
   el("steam-steps").innerHTML = steamSteps(plan).map((text) => `<li>${escapeHtml(text)}</li>`).join("");
 };
 
+const unpickableKeys = (plan) =>
+  controllerOf(plan).back.map((id) => [id, ((plan.back || {})[id] || {}).key]).filter(([, key]) => key && !FREE_KEYS.includes(key));
+
+const fixKeys = (plan) => {
+  const bad = unpickableKeys(plan);
+  const used = controllerOf(plan).back.map((id) => ((plan.back || {})[id] || {}).key).filter((key) => FREE_KEYS.includes(key));
+  const spare = FREE_KEYS.filter((key) => !used.includes(key));
+  const replacements = Object.fromEntries(bad.map(([id, key], index) => [id, { from: key, to: spare[index] || "" }]));
+  const back = Object.fromEntries(Object.entries(plan.back || {}).map(([id, setting]) => [id, replacements[id] ? { ...setting, key: replacements[id].to } : setting]));
+  const why = Object.values(replacements).reduce((text, { from, to }) => text.split(from).join(to), plan.why || "");
+  return { ...plan, back, why };
+};
+
+const sourceStarter = (plan) => STARTERS.find((starter) => plan.name.endsWith("(my copy)") && plan.name.startsWith(starter.plan.name));
+
+const renderBanner = (plan) => {
+  const node = el("banner");
+  const bad = isBuiltin(store.library.currentId) ? [] : unpickableKeys(plan);
+  const source = isBuiltin(store.library.currentId) ? null : sourceStarter(plan);
+  const parts = [
+    ...(bad.length ? [`This layout has back buttons on keys Steam's keyboard can't send (${bad.map(([id, key]) => `${id} ${key}`).join(", ")}). <button id="fix-keys">Use F9 to F12 instead</button>`] : []),
+    ...(source ? [`This is your own copy, so it doesn't get updates. <button id="open-source">Open the updated "${escapeHtml(source.plan.name)}"</button>`] : []),
+  ];
+  node.hidden = parts.length === 0;
+  node.innerHTML = parts.map((text) => `<div>${text}</div>`).join("");
+  if (bad.length) el("fix-keys").addEventListener("click", () => edit(fixKeys));
+  if (source) el("open-source").addEventListener("click", () => { store.selected = null; saveLibrary({ ...store.library, currentId: source.id }); });
+};
+
 const render = () => {
   const plan = currentPlan();
   renderLibrary(plan);
+  renderBanner(plan);
   renderSets(plan);
   renderStage(plan);
   renderBack(plan);
   renderDetails(plan);
   renderPalette(plan);
   renderControls(plan);
+  renderOtherKeys(plan);
   renderSteps(plan);
 };
 
@@ -626,8 +683,13 @@ const toLua = (plan) => {
     return `    {\n      name = ${luaString(set.name)},\n      layers = {\n${layers}\n      },\n    },`;
   }).join("\n");
   const paddles = LAYERS.map((layer) => `    ${layer} = ${luaLayer(plan, plan.paddles[layer], slots, "    ")},`).join("\n");
-  return `-- ${plan.name}, from the gamepad bar planner.\nPadPlanData = {\n  version = 1,\n  name = ${luaString(plan.name)},\n  class = ${luaString(plan.class)},\n  paddleOrder = { ${slots.map(luaString).join(", ")} },\n  sets = {\n${sets}\n  },\n  paddles = {\n${paddles}\n  },\n}\n`;
+  return `-- ${plan.name}, from the gamepad bar planner.\nPadPlanData = {\n  version = 1,\n  name = ${luaString(plan.name)},\n  class = ${luaString(plan.class)},\n  paddleOrder = { ${slots.map(luaString).join(", ")} },\n  paddleKeys = { ${backKeys(plan).map(luaString).join(", ")} },\n  reservedKeys = { ${otherKeys(plan).map(luaString).join(", ")} },\n  sets = {\n${sets}\n  },\n  paddles = {\n${paddles}\n  },\n}\n`;
 };
+
+const normalizeKey = (text) => text.trim().toUpperCase().replace(/\s*\+\s*/g, "-");
+const otherKeys = (plan) => (plan.otherKeys || []).map(normalizeKey).filter(Boolean);
+
+const backKeys = (plan) => slotBackIds(plan).map((id) => ((plan.back || {})[id] || {}).key || "");
 
 const ADDON_PREFIX = "PADPLAN1:";
 const addonText = (text) => String(text).replace(/[\t\n]/g, " ");
@@ -652,7 +714,7 @@ const addonLines = (plan) => {
     ...LAYERS.flatMap((layer) => addonRows(plan, set.layers[layer], layer === "base" ? DPAD : [...DPAD, ...FACE], ["b", String(index + 1), layer])),
   ]);
   const paddles = LAYERS.flatMap((layer) => addonRows(plan, plan.paddles[layer], slots, ["p", layer]));
-  return [["PADPLAN", "1"], ["name", addonText(plan.name)], ["class", plan.class], ["order", slots.join(",")], ...bars, ...paddles].map((fields) => fields.join("\t")).join("\n");
+  return [["PADPLAN", "1"], ["name", addonText(plan.name)], ["class", plan.class], ["order", slots.join(",")], ["keys", backKeys(plan).join(",")], ["reserved", otherKeys(plan).join(",")], ...bars, ...paddles].map((fields) => fields.join("\t")).join("\n");
 };
 
 const addonCode = (plan) => ADDON_PREFIX + btoa(Array.from(new TextEncoder().encode(addonLines(plan)), (byte) => String.fromCharCode(byte)).join(""));
@@ -696,6 +758,8 @@ const bind = () => {
     if (!confirm("Start an empty layout for that class? Your current layout stays saved.")) return render();
     addLayout(emptyPlan(event.target.value, currentPlan().controller));
   });
+  el("other-keys").addEventListener("change", (event) => edit((plan) => ({ ...plan, otherKeys: event.target.value.split(",").map((key) => key.trim()).filter(Boolean) })));
+  el("use-back").addEventListener("change", (event) => edit((plan) => ({ ...plan, useBackButtons: event.target.checked })));
   el("controller-pick").addEventListener("change", (event) => edit((plan) => ({ ...plan, controller: event.target.value, back: { ...defaultBack(event.target.value), ...Object.fromEntries(Object.entries(plan.back || {}).filter(([id]) => CONTROLLERS[event.target.value].back.includes(id))) } })));
   el("new").addEventListener("click", () => addLayout(emptyPlan(currentPlan().class, currentPlan().controller)));
   el("duplicate").addEventListener("click", () => addLayout({ ...clone(currentPlan()), name: `${currentPlan().name} (copy)` }));

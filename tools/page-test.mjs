@@ -25,11 +25,11 @@ await step("opens on the first starter, and Shane's preset uses four keys that w
   await page.selectOption("#layout-pick", "builtin:shane")
   assert.equal(await page.locator("#layout-name").inputValue(), "Shane's level 10 Warlock (Steam Controller)")
   const steps = await page.locator("#steam-steps").innerText()
-  assert.match(steps, /R4: keyboard F23/)
+  assert.match(steps, /R4: keyboard F11/)
   assert.match(steps, /L5: keyboard F10/)
-  assert.match(steps, /pressing L4, L5, R4, R5/)
+  assert.match(steps, /L4 = Backhand P1, L5 = Backhand P2, R4 = Backhand P3, R5 = Backhand P4/)
   assert.doesNotMatch(steps, /Windows only|Linux, Steam Deck and Proton/)
-  assert.equal(await page.locator(".paddle-group").first().locator(".slot[aria-label^='No trigger + R4: Corruption']").count(), 1)
+  assert.equal(await page.locator("#stage .slot.back[aria-label^='No trigger + R4: Shadow Bolt']").count(), 1)
 })
 
 await step("every built-in layout renders without errors", async () => {
@@ -37,7 +37,7 @@ await step("every built-in layout renders without errors", async () => {
   assert.equal(ids.length, 10)
   for (const id of ids) {
     await page.selectOption("#layout-pick", id)
-    assert.equal(await page.locator("#stage .slot").count(), 32)
+    assert.equal(await page.locator("#stage .slot:not(.back)").count(), 32)
   }
   assert.deepEqual(errors, [])
 })
@@ -59,22 +59,20 @@ await step("editing a built-in layout makes a copy and leaves the built-in alone
 await step("switching to a DualSense Edge shows its two back buttons and PlayStation glyphs", async () => {
   await page.selectOption("#layout-pick", { label: "Mage starter (my copy)" })
   await page.selectOption("#controller-pick", "edge")
+  assert.equal(await page.locator("#back").isHidden(), true)
+  await page.locator("#use-back").check()
   assert.equal(await page.locator("#back").isHidden(), false)
   assert.equal(await page.locator(".back-row").count(), 2)
   assert.equal(await page.locator("#stage .slot[aria-label^='L2 + □']").count(), 1)
 })
 
-await step("a key Wine drops gets a Linux warning", async () => {
-  await page.locator(".back-row").nth(1).locator("select[data-field=key]").selectOption("F20")
-  assert.match(await page.locator("#steam-steps").innerText(), /RB4 sends F20, which Wine passes to WoW as no key/)
-})
-
 await step("marking a back button as used elsewhere removes its slots and the clash check works", async () => {
   await page.locator(".back-row").first().locator("select[data-field=use]").selectOption("other")
-  assert.equal(await page.locator(".paddle-group").first().locator(".slot").count(), 1)
-  await page.locator(".back-row").nth(1).locator("select[data-field=key]").selectOption("F13")
-  await page.locator(".back-row").first().locator("select[data-field=key]").selectOption("F13")
-  assert.match(await page.locator("#steam-steps").innerText(), /Clash: LB4 and another back button both send F13/)
+  assert.equal(await page.locator("#stage .slot.back[aria-label^='No trigger + ']").count(), 1)
+  await page.locator(".back-row").first().locator("select[data-field=use]").selectOption("slot")
+  await page.locator(".back-row").nth(1).locator("select[data-field=key]").selectOption("F11")
+  await page.locator(".back-row").first().locator("select[data-field=key]").selectOption("F11")
+  assert.match(await page.locator("#steam-steps").innerText(), /Clash: LB4 and another back button both send F11/)
 })
 
 await step("a share code imports as a new layout", async () => {
@@ -104,26 +102,30 @@ await step("Save for WoW writes PadPlan data with the slot back buttons in order
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator("#save-wow").click()])
   const text = await (await download.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString())
   assert.match(text, /paddleOrder = \{ "L4", "L5", "R4", "R5" \}/)
-  assert.match(text, /R4 = \{ kind = "spell", id = 172, names = \{ "Corruption" \} \}/)
+  assert.match(text, /R4 = \{ kind = "spell", id = 686, names = \{ "Shadow Bolt" \} \}/)
 })
 
 await step("mirroring the d-pad fills the back-button slots", async () => {
   await page.selectOption("#layout-pick", "builtin:warlock")
   await page.selectOption("#controller-pick", "steam")
+  await page.locator("#use-back").check()
   await page.locator("#mirror").click()
-  assert.equal(await page.locator(".paddle-group").first().locator(".slot[aria-label^='No trigger + L4: Shadow Bolt']").count(), 1)
+  assert.equal(await page.locator("#stage .slot.back[aria-label^='No trigger + L4: Shadow Bolt']").count(), 1)
 })
 
 await step("hovering shows a tooltip with the name, level and what a spell does", async () => {
   await page.selectOption("#layout-pick", "builtin:shane")
-  await page.locator("#stage .slot[aria-label^='No trigger + D-pad up: Shadow Bolt']").hover()
+  const slot = page.locator("#stage .slot.back[aria-label^='No trigger + R4: Shadow Bolt']")
+  await slot.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(200)
+  await slot.hover()
   const tip = page.locator("#tip")
   assert.equal(await tip.isVisible(), true)
   const text = await tip.innerText()
   assert.match(text, /Shadow Bolt/)
   assert.match(text, /Learned at level 1/)
   assert.match(text, /shadowy bolt/)
-  assert.match(text, /No trigger \+ D-pad up/)
+  assert.match(text, /No trigger \+ R4/)
 })
 
 await step("macros show their text and what they do", async () => {
@@ -159,6 +161,19 @@ await step("the addon code and the Lua file describe the same layout", async () 
   const [code, lua] = await page.evaluate(() => [addonCode(currentPlan()), toLua(currentPlan())])
   writeFileSync("dist/shane.padplan", code)
   writeFileSync("dist/shane-data.lua", lua)
+})
+
+await step("an old copy with keys Steam can't send gets a fix and a pointer to the updated built-in", async () => {
+  await page.selectOption("#layout-pick", "builtin:shane")
+  await page.locator("#duplicate").click()
+  await page.evaluate(() => edit((plan) => ({ ...plan, name: "Shane's level 10 Warlock (Steam Controller) (my copy)", back: { ...plan.back, R4: { use: "slot", key: "F23", note: "" }, R5: { use: "slot", key: "F24", note: "" } }, why: "sends F9, F10, F23 and F24" })))
+  assert.match(await page.locator("#banner").innerText(), /R4 F23, R5 F24/)
+  await page.locator("#fix-keys").click()
+  assert.doesNotMatch(await page.locator("#banner").innerText(), /can't send/)
+  assert.match(await page.locator("#steam-steps").innerText(), /R4: keyboard F11/)
+  assert.equal(await page.locator("#why").inputValue(), "sends F9, F10, F11 and F12")
+  await page.locator("#open-source").click()
+  assert.equal(await page.locator("#layout-name").inputValue(), "Shane's level 10 Warlock (Steam Controller)")
 })
 
 await step("no page errors", async () => assert.deepEqual(errors, []))

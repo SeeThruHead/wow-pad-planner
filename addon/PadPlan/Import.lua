@@ -59,6 +59,10 @@ local function ReadLine(plan, fields)
         plan.class = fields[2]
     elseif tag == "order" then
         plan.paddleOrder = fields[2] ~= "" and Split(fields[2], ",") or {}
+    elseif tag == "reserved" then
+        plan.reservedKeys = fields[2] ~= "" and Split(fields[2], ",") or {}
+    elseif tag == "keys" then
+        plan.paddleKeys = fields[2] ~= "" and Split(fields[2], ",") or {}
     elseif tag == "set" then
         local set = plan.sets[tonumber(fields[2])]
         if set then set.name = fields[3] end
@@ -83,6 +87,7 @@ function ns.DecodeCode(code)
         version = 1,
         name = "Imported layout",
         paddleOrder = {},
+        paddleKeys = {},
         sets = { { name = "Set 1", layers = EmptyLayers() }, { name = "Set 2", layers = EmptyLayers() }, { name = "Set 3", layers = EmptyLayers() } },
         paddles = EmptyLayers(),
     }
