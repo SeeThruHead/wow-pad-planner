@@ -510,14 +510,19 @@ export const GetItIntoWow = (h: H, model: Model): Html =>
             [h.Class("plain")],
             [
               h.strong([], ["Ask me at login"]),
-              " (the default): a small window asks whether to put the new layout on your bars, with Apply and Not now buttons you can click with the trackpad mouse. ",
+              " (the default): a game window names the character and the layout and asks whether to put it on your bars. Press A for Apply or B for Not now; no mouse needed. ",
               h.strong([], ["Apply automatically"]),
               ": it just does it and says so in chat. ",
               h.strong([], ["Off"]),
-              ": it only tells you a layout is waiting; click PadPlan in the addon menu (next to the minimap) to apply it."
+              ": it only tells you a layout is waiting; open PadPlan in the addon menu (next to the minimap) and choose Apply layout."
             ]
           ),
-          h.li([h.Class("plain")], ["Spells you haven't learned yet go on by themselves when you learn them."])
+          h.li(
+            [h.Class("plain")],
+            [
+              "Before applying, PadPlan backs up the bars and keys it replaces. To go back, open PadPlan in the addon menu and choose Undo last apply. Spells you haven't learned yet go on by themselves when you learn them."
+            ]
+          )
         ]
       ),
       h.p(

@@ -91,6 +91,10 @@ local function Fresh(saved)
         return frame
     end
     UIParent = {}
+    StaticPopupDialogs = {}
+    world.popup = nil
+    StaticPopup_Show = function(name, text) world.popup = { name = name, text = text } end
+    GetRealmName = function() return "Seethruhead" end
     UnitName = function() return world.name or "Mimesis" end
     GetNormalizedRealmName = function() return "Seethruhead" end
     SlashCmdList = {
@@ -256,22 +260,35 @@ Check(next(otherClass.actions) == nil, "an old single-layout file never touches 
 local asking = Fresh(nil)
 Load(asking, "dist/shane-data.lua", "ask")
 Login(asking)
-Check(next(asking.actions) == nil and asking.widgets.PadPlanAskFrame and asking.widgets.PadPlanAskFrame.shown, "Ask me shows a popup and changes nothing until you answer")
-asking.widgets.PadPlanAskApply.scripts.OnClick()
+Check(next(asking.actions) == nil and asking.popup and asking.popup.name == "PADPLAN_APPLY", "Ask me shows Blizzard's popup (A and B on the pad) and changes nothing until you answer")
+Check(asking.popup.text:find("Mimesis (Seethruhead)", 1, true) and asking.popup.text:find("binds F9, F10, F11, F12 to the back buttons", 1, true) and asking.popup.text:find("Undo", 1, true), "the popup says which character, which layout, what changes and how to undo")
+StaticPopupDialogs.PADPLAN_APPLY.OnAccept()
 Check(Snapshot(asking) == fileResult, "pressing Apply on the popup places the layout")
 
 local declined = Fresh(nil)
 Load(declined, "dist/shane-data.lua", "ask")
 Login(declined)
-declined.widgets.PadPlanAskLater.scripts.OnClick()
-Check(next(declined.actions) == nil and not declined.widgets.PadPlanAskFrame.shown, "Not now closes the popup and leaves the bars alone")
+Check(next(declined.actions) == nil and StaticPopupDialogs.PADPLAN_APPLY.button2 == "Not now", "Not now leaves the bars alone")
+
+local undoing = Fresh(nil)
+Load(undoing, "dist/shane-data.lua", "auto")
+undoing.actions[201] = { "spell", 702 }
+undoing.actions[505] = { "spell", 1454 }
+local before = Snapshot(undoing)
+Login(undoing)
+Check(Snapshot(undoing) ~= before and PadPlanCharDB.backup ~= nil, "applying keeps a backup of the bars it replaces")
+PadPlan_OnAddonCompartmentClick(nil, "LeftButton")
+Check(undoing.popup.name == "PADPLAN_MENU" and undoing.popup.text:find("Undo puts back", 1, true), "the addon menu opens a popup with Apply and Undo")
+StaticPopupDialogs.PADPLAN_MENU.OnAlt()
+Check(Snapshot(undoing) == before and undoing.bindings.F9 == "OPENBAG3" and BackhandDB.paddleKeys.P1 == "PADPADDLE1", "Undo puts back the bars, the bag keys and Backhand's old keys")
 
 local manual = Fresh(nil)
 Load(manual, "dist/shane-data.lua", "off")
 Login(manual)
 Check(next(manual.actions) == nil and Printed(manual, "is waiting for this character"), "Off only says a layout is waiting")
 PadPlan_OnAddonCompartmentClick(nil, "LeftButton")
-Check(Snapshot(manual) == fileResult, "with Off, clicking PadPlan in the addon menu applies it")
+StaticPopupDialogs.PADPLAN_MENU.OnAccept()
+Check(Snapshot(manual) == fileResult, "with Off, Apply in the PadPlan menu applies it")
 
 local damaged = Fresh(nil)
 local damagedNs = Load(damaged, nil)
@@ -283,4 +300,5 @@ local clicked = Fresh(nil)
 Load(clicked, "dist/shane-data.lua")
 Fire(clicked, "ADDON_LOADED", "PadPlan")
 PadPlan_OnAddonCompartmentClick(nil, "LeftButton")
-Check(Snapshot(clicked) == fileResult, "clicking PadPlan in the addon menu applies the layout")
+StaticPopupDialogs.PADPLAN_MENU.OnAccept()
+Check(Snapshot(clicked) == fileResult, "Apply in the PadPlan menu applies the layout")

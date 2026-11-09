@@ -343,6 +343,7 @@ local function Apply(automatic)
         return
     end
     local plan = CurrentPlan()
+    if not PadPlanCharDB.backup or PadPlanCharDB.applied ~= Signature(plan) then ns.Backup(plan) end
     SetUpBackhand(plan)
     local result = Place()
     PadPlanCharDB.applied = Signature(plan)
@@ -458,44 +459,135 @@ local function Forget()
     ApplyIfChanged()
 end
 
-local function AskFrame()
-    if ns.askFrame then return ns.askFrame end
-    local frame = CreateFrame("Frame", "PadPlanAskFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(420, 150)
-    frame:SetPoint("CENTER", 0, 120)
-    frame:SetFrameStrata("DIALOG")
-    local text = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    text:SetPoint("TOPLEFT", 16, -34)
-    text:SetPoint("TOPRIGHT", -16, -34)
-    text:SetJustifyH("LEFT")
-    local apply = CreateFrame("Button", "PadPlanAskApply", frame, "UIPanelButtonTemplate")
-    apply:SetSize(140, 28)
-    apply:SetPoint("BOTTOMLEFT", 24, 16)
-    apply:SetText("Apply")
-    apply:SetScript("OnClick", function()
-        frame:Hide()
-        Apply(false)
+local function BackupSlots(backup)
+    ForEachSlot(function(_, slot)
+        if not ValidSlot(slot) then return end
+        local kind, id = GetActionInfo(slot)
+        local name = kind == "macro" and GetActionText(slot) or nil
+        backup.slots[#backup.slots + 1] = { slot = slot, kind = kind, id = id, name = name }
     end)
-    local later = CreateFrame("Button", "PadPlanAskLater", frame, "UIPanelButtonTemplate")
-    later:SetSize(140, 28)
-    later:SetPoint("BOTTOMRIGHT", -24, 16)
-    later:SetText("Not now")
-    later:SetScript("OnClick", function() frame:Hide() end)
-    frame.text = text
-    ns.askFrame = frame
-    return frame
+end
+
+local function BackupKeys(backup, plan)
+    local keys = {}
+    for _, key in ipairs(plan.paddleKeys or {}) do keys[#keys + 1] = key end
+    for _, key in ipairs(plan.reservedKeys or {}) do keys[#keys + 1] = key end
+    for _, key in ipairs(keys) do
+        if key ~= "" then backup.bindings[#backup.bindings + 1] = { key = key, action = GetBindingAction and GetBindingAction(key, false) or "" } end
+    end
+    if type(BackhandDB) == "table" and type(BackhandDB.paddleKeys) == "table" then
+        backup.backhand = {}
+        for index = 1, PADDLE_COUNT do backup.backhand[index] = BackhandDB.paddleKeys["P" .. index] or "NONE" end
+    end
+end
+
+function ns.Backup(plan)
+    local backup = { slots = {}, bindings = {}, layout = plan.name }
+    BackupSlots(backup)
+    BackupKeys(backup, plan)
+    PadPlanCharDB.backup = backup
+end
+
+local function RestoreSlot(saved)
+    ClearCursor()
+    if saved.kind == "spell" and saved.id then
+        local pickup = (C_Spell and C_Spell.PickupSpell) or PickupSpell
+        pickup(saved.id)
+    elseif saved.kind == "macro" and saved.name then
+        local index = GetMacroIndexByName(saved.name)
+        if index and index > 0 then PickupMacro(index) end
+    elseif saved.kind == "item" and saved.id then
+        local pickup = (C_Item and C_Item.PickupItem) or PickupItem
+        pickup(saved.id)
+    end
+    if GetCursorInfo() then
+        PlaceAction(saved.slot)
+    else
+        ClearSlot(saved.slot)
+    end
+    ClearCursor()
+end
+
+function ns.Undo()
+    local backup = PadPlanCharDB.backup
+    if not backup then return Print("There's nothing to undo yet.") end
+    if InCombatLockdown() then return Print("Can't undo in combat; try again when the fight is over.") end
+    for _, saved in ipairs(backup.slots) do RestoreSlot(saved) end
+    for _, saved in ipairs(backup.bindings) do
+        if saved.action and saved.action ~= "" then SetBinding(saved.key, saved.action) else SetBinding(saved.key) end
+    end
+    if #backup.bindings > 0 then SaveBindings(GetCurrentBindingSet()) end
+    if backup.backhand and SlashCmdList.BACKHAND then SlashCmdList.BACKHAND("keys " .. table.concat(backup.backhand, " ")) end
+    PadPlanCharDB.backup = nil
+    PadPlanCharDB.waitingFor = nil
+    Print("Put back the bars and keys you had before \"%s\" was applied.", backup.layout or "the layout")
+end
+
+local function KeysSentence(plan)
+    local keys = {}
+    for _, key in ipairs(plan.paddleKeys or {}) do
+        if key ~= "" then keys[#keys + 1] = key end
+    end
+    if #keys == 0 then return "" end
+    return string.format(" and binds %s to the back buttons", table.concat(keys, ", "))
+end
+
+local function WhoAmI()
+    local name = UnitName("player") or "this character"
+    local realm = (GetRealmName and GetRealmName()) or ""
+    return realm ~= "" and string.format("%s (%s)", name, realm) or name
+end
+
+local function AskText(plan)
+    return string.format(
+        "WoW Forever, %s.\n\nPadPlan has the layout \"%s\" for this character. Apply it?\n\nThis replaces this character's gamepad bar spells%s. Your current bars are backed up first: open PadPlan in the addon menu and choose Undo to put them back.",
+        WhoAmI(), plan.name or "layout", KeysSentence(plan)
+    )
+end
+
+local function DefinePopups()
+    StaticPopupDialogs = StaticPopupDialogs or {}
+    StaticPopupDialogs.PADPLAN_APPLY = {
+        text = "%s",
+        button1 = "Apply",
+        button2 = "Not now",
+        OnAccept = function() Apply(false) end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3
+    }
+    StaticPopupDialogs.PADPLAN_MENU = {
+        text = "%s",
+        button1 = "Apply layout",
+        button2 = "Close",
+        button3 = "Undo last apply",
+        OnAccept = function() Apply(false) end,
+        OnAlt = function() ns.Undo() end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3
+    }
 end
 
 function ns.Ask(plan)
-    local frame = AskFrame()
-    frame.text:SetText(string.format("PadPlan has a new layout for this character: \"%s\".\n\nPut it on your gamepad bars now?", plan.name or "layout"))
-    frame:Show()
+    DefinePopups()
     ns.asking = plan
+    StaticPopup_Show("PADPLAN_APPLY", AskText(plan))
+end
+
+function ns.Menu()
+    DefinePopups()
+    local plan = CurrentPlan()
+    local layout = plan and string.format("Layout for %s: \"%s\".", WhoAmI(), plan.name or "layout") or string.format("PadPlan has no layout for %s.", WhoAmI())
+    local undo = PadPlanCharDB.backup and string.format("\n\nUndo puts back the bars you had before \"%s\".", PadPlanCharDB.backup.layout or "the last apply") or "\n\nThere's nothing to undo yet."
+    StaticPopup_Show("PADPLAN_MENU", "PadPlan\n\n" .. layout .. undo)
 end
 
 function PadPlan_OnAddonCompartmentClick(_, button)
     if button == "RightButton" then return ns.ShowImport() end
-    Apply(false)
+    ns.Menu()
 end
 
 SLASH_PADPLAN1 = "/padplan"
@@ -505,6 +597,8 @@ SlashCmdList.PADPLAN = function(message)
     if command == "check" then return Check() end
     if command == "import" then return ns.ShowImport() end
     if command == "forget" then return Forget() end
+    if command == "undo" then return ns.Undo() end
+    if command == "menu" then return ns.Menu() end
     Show()
 end
 
