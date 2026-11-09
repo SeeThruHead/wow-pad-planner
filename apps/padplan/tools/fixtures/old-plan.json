@@ -1,0 +1,93 @@
+{
+  "version": 2,
+  "name": "Warlock starter",
+  "class": "WARLOCK",
+  "controller": "xbox",
+  "level": 60,
+  "activeSet": 0,
+  "why": "Cast-time spells sit on the d-pad with no trigger: you stop to cast them anyway, so moving your thumb off the stick costs nothing. Instant spells sit on the trigger layers' face buttons, which you can press while moving. Main attacks are on RT, the interrupt is always RT + B and the emergency defensive is always LT + B, so they are the same button on every class. Cooldowns and rare utility are behind LT + RT. Set 2 (LB + RB + d-pad right) holds out-of-combat things: buffs, pets, travel, hearth. The pet's interrupt (Spell Lock or Seduction) is the RT + B macro. Where the spellbook groups a family (forms, aspects, pets, auras, stances) into one flyout, drag the flyout instead to free slots.",
+  "sets": [
+    {
+      "name": "Combat",
+      "layers": {
+        "base": {
+          "DU": { "ref": "Shadow Bolt" },
+          "DR": { "ref": "Immolate" },
+          "DD": { "ref": "Drain Life" },
+          "DL": { "ref": "Fear" }
+        },
+        "lt": {
+          "X": { "ref": "Life Tap" },
+          "Y": { "ref": "Curse of Weakness" },
+          "A": { "ref": "Siphon Life" },
+          "B": { "ref": "Use Healthstone" },
+          "DU": { "ref": "Pet Attack" },
+          "DR": { "ref": "Health Funnel" },
+          "DD": { "ref": "Pet Follow" },
+          "DL": { "ref": "Curse of Recklessness" }
+        },
+        "rt": {
+          "X": { "ref": "Corruption" },
+          "Y": { "ref": "Curse of Agony" },
+          "A": { "ref": "Shadowburn" },
+          "B": { "ref": "Seduce / Spell Lock" },
+          "DL": { "ref": "Drain Soul" },
+          "DU": { "ref": "Searing Pain" },
+          "DR": { "ref": "Rain of Fire" },
+          "DD": { "ref": "Shoot" }
+        },
+        "both": {
+          "X": { "ref": "Death Coil" },
+          "Y": { "ref": "Howl of Terror" },
+          "A": { "ref": "Amplify Curse" },
+          "B": { "ref": "Shadow Ward" },
+          "DL": { "ref": "Inferno" },
+          "DU": { "ref": "Fel Domination" },
+          "DR": { "ref": "Hellfire" },
+          "DD": { "ref": "Curse of Doom" }
+        }
+      }
+    },
+    {
+      "name": "Out of combat",
+      "layers": {
+        "base": {
+          "DL": { "ref": "Summon Imp" },
+          "DU": { "ref": "Summon Voidwalker" },
+          "DR": { "ref": "Summon Succubus" },
+          "DD": { "ref": "Summon Felhunter" }
+        },
+        "lt": {
+          "X": { "ref": "Ritual of Summoning" },
+          "Y": { "ref": "Banish" },
+          "B": { "ref": "Subjugate Demon" },
+          "A": { "ref": "Summon Felsteed" },
+          "DL": { "ref": "Curse of Tongues" },
+          "DU": { "ref": "Pet Passive" },
+          "DR": { "ref": "Drain Mana" },
+          "DD": { "ref": "Pet Defensive" }
+        },
+        "rt": {
+          "X": { "ref": "Create Healthstone" },
+          "Y": { "ref": "Create Soulstone" },
+          "B": { "ref": "Create Spellstone" },
+          "A": { "ref": "Create Firestone" },
+          "DL": { "ref": "Eye of Kilrogg" },
+          "DU": { "ref": "Unending Breath" },
+          "DR": { "ref": "Sense Demons" },
+          "DD": { "ref": "Detect Invisibility" }
+        },
+        "both": {
+          "X": { "ref": "Ritual of Doom" },
+          "Y": { "ref": "Soulstone me" },
+          "B": { "ref": "Use Healthstone" },
+          "A": { "ref": "Hearthstone" }
+        }
+      }
+    },
+    { "name": "Spare", "layers": { "base": {}, "lt": {}, "rt": {}, "both": {} } }
+  ],
+  "paddles": { "base": {}, "lt": {}, "rt": {}, "both": {} },
+  "back": {},
+  "controls": {}
+}

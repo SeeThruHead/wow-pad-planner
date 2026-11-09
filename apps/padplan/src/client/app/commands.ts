@@ -2,32 +2,36 @@ import { Effect, Option, Schema } from "effect"
 import * as Command from "foldkit/command"
 import { readCode } from "../../domain/Exports.ts"
 import { Nickname } from "../../features/account/Account.ts"
-import { Saved } from "../../features/layouts/Saved.ts"
+import { SavedCharacter } from "../../features/characters/Saved.ts"
 import { ApiClient } from "../api/ApiClient.ts"
 import { Message } from "./messages.ts"
-import { Library } from "./model.ts"
+import { emptyLibrary, migrateOldLayouts } from "./library.ts"
+import { Library, OldLibrary } from "./model.ts"
 
-export const STORAGE_KEY = "wow-pad-planner:v2"
+export const STORAGE_KEY = "wow-pad-planner:v3"
+const OLD_STORAGE_KEY = "wow-pad-planner:v2"
 const TOAST_MS = 3200
 
 const decodeLibrary = Schema.decodeUnknownOption(Schema.fromJsonString(Library))
+const decodeOldLibrary = Schema.decodeUnknownOption(Schema.fromJsonString(OldLibrary))
 const encodeLibrary = Schema.encodeSync(Schema.fromJsonString(Library))
 
 const randomDevice = Effect.sync(() =>
   Array.from(crypto.getRandomValues(new Uint8Array(4)), (byte) => byte.toString(16).padStart(2, "0")).join("")
 )
 
+const fromOld = (device: string) =>
+  Option.match(decodeOldLibrary(localStorage.getItem(OLD_STORAGE_KEY) ?? ""), {
+    onNone: () => emptyLibrary(device),
+    onSome: (old) => ({ ...emptyLibrary(device), characters: migrateOldLayouts(old.layouts, device) })
+  })
+
 export const LoadLibrary = Command.define("LoadLibrary", {
   messages: [Message.LoadedLibrary],
   execute: Effect.gen(function* () {
-    const saved = decodeLibrary(localStorage.getItem(STORAGE_KEY) ?? "")
     const device = yield* randomDevice
-    return Message.LoadedLibrary({
-      library: Option.match(saved, {
-        onNone: () => ({ layouts: [], currentId: "", device }),
-        onSome: (library) => ({ ...library, device: library.device ?? device })
-      })
-    })
+    const saved = decodeLibrary(localStorage.getItem(STORAGE_KEY) ?? "")
+    return Message.LoadedLibrary({ library: Option.getOrElse(saved, () => fromOld(device)) })
   })
 })
 
@@ -49,6 +53,14 @@ export const LoadAccount = Command.define("LoadAccount", {
   )
 })
 
+export const LoadServerCharacters = Command.define("LoadServerCharacters", {
+  messages: [Message.GotServerCharacters],
+  execute: Effect.flatMap(ApiClient, (api) => api.MyCharacters({})).pipe(
+    Effect.map((characters) => Message.GotServerCharacters({ characters })),
+    Effect.orElseSucceed(() => Message.GotServerCharacters({ characters: [] }))
+  )
+})
+
 export const LoadServerLayouts = Command.define("LoadServerLayouts", {
   messages: [Message.GotServerLayouts],
   execute: Effect.flatMap(ApiClient, (api) => api.MyLayouts({})).pipe(
@@ -58,12 +70,12 @@ export const LoadServerLayouts = Command.define("LoadServerLayouts", {
 })
 
 export const SaveToServer = Command.define("SaveToServer", {
-  args: { layout: Saved },
+  args: { saved: SavedCharacter },
   messages: [Message.SavedToServer],
-  execute: ({ layout }) =>
-    Effect.flatMap(ApiClient, (api) => api.SaveLayout({ layout })).pipe(
-      Effect.map((saved) => Message.SavedToServer({ layout: saved })),
-      Effect.orElseSucceed(() => Message.SavedToServer({ layout: null }))
+  execute: ({ saved }) =>
+    Effect.flatMap(ApiClient, (api) => api.SaveCharacter({ saved })).pipe(
+      Effect.map((result) => Message.SavedToServer({ saved: result })),
+      Effect.orElseSucceed(() => Message.SavedToServer({ saved: null }))
     )
 })
 

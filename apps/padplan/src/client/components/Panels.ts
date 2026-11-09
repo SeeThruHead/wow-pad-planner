@@ -14,13 +14,12 @@ import {
   usedCounts,
   usesBack
 } from "../../domain/Layout.ts"
-import { STARTERS } from "../../domain/Starters.ts"
-import { ClassId, ControllerId, entryAt } from "../../domain/Plan.ts"
+import { ControllerId, entryAt } from "../../domain/Plan.ts"
+import type { Autoload, Character, NamedLayout } from "../../domain/Character.ts"
 import type { Plan, SlotLocation } from "../../domain/Plan.ts"
 import { Message } from "../app/messages.ts"
 import type { Message as AppMessage } from "../app/messages.ts"
 import type { Model } from "../app/model.ts"
-import { isBuiltin, sourceStarter } from "../app/library.ts"
 
 type H = HtmlBuilder<AppMessage>
 
@@ -46,7 +45,6 @@ const tipButton = (
     [label]
   )
 
-const isClass = (value: string): value is ClassId => ClassId.literals.some((literal) => literal === value)
 const isController = (value: string): value is ControllerId =>
   ControllerId.literals.some((literal) => literal === value)
 
@@ -61,8 +59,8 @@ export const HowTo = (h: H): Html =>
           h.li(
             [],
             [
-              h.strong([], ["Pick your class and controller"]),
-              ", and your level (spells you can't use yet are dimmed). Or start from a built-in layout in the Layout list."
+              h.strong([], ["Pick or create a character"]),
+              ", with its name, class, level and realm as in WoW. Each character has its own layouts as tabs (Leveling, Dungeons...); the \u2605 one is the one PadPlan puts on your bars."
             ]
           ),
           h.li(
@@ -98,53 +96,118 @@ export const HowTo = (h: H): Html =>
     ]
   )
 
-const layoutOptions = (h: H, model: Model): ReadonlyArray<Html> => {
-  const id = model.library.currentId
-  const mine = model.library.layouts.map((item) =>
-    h.option([h.Value(item.id), h.Selected(item.id === id)], [item.plan.name])
-  )
-  const builtins = STARTERS.map((starter) =>
-    h.option([h.Value(starter.id), h.Selected(starter.id === id)], [starter.plan.name])
-  )
+const banner = (h: H, plan: Plan): ReadonlyArray<Html> => {
+  const bad = unpickableKeys(plan)
+  if (bad.length === 0) return []
   return [
-    h.optgroup([h.Attribute("label", "My layouts")], mine.length ? mine : [h.option([h.Disabled(true)], ["None yet"])]),
-    h.optgroup([h.Attribute("label", "Built-in (read-only)")], builtins)
+    h.div(
+      [h.Class("banner"), h.Id("banner")],
+      [
+        h.div(
+          [],
+          [
+            `This layout has back buttons on keys Steam's keyboard can't send (${bad.map(([id, key]) => `${id} ${key}`).join(", ")}). `,
+            h.button([h.Id("fix-keys"), h.OnClick(Message.ClickedFixKeys())], ["Use F9 to F12 instead"])
+          ]
+        )
+      ]
+    )
   ]
 }
 
-const banner = (h: H, model: Model, plan: Plan): ReadonlyArray<Html> => {
-  if (isBuiltin(model.library.currentId)) return []
-  const bad = unpickableKeys(plan)
-  const source = sourceStarter(plan)
-  const parts = [
-    ...(bad.length
-      ? [
-          h.div(
-            [],
-            [
-              `This layout has back buttons on keys Steam's keyboard can't send (${bad.map(([id, key]) => `${id} ${key}`).join(", ")}). `,
-              h.button([h.Id("fix-keys"), h.OnClick(Message.ClickedFixKeys())], ["Use F9 to F12 instead"])
-            ]
-          )
+const AUTOLOAD_LABELS: ReadonlyArray<readonly [Autoload, string]> = [
+  ["ask", "Ask me at login"],
+  ["auto", "Apply automatically"],
+  ["off", "Off (apply by hand)"]
+]
+
+const isAutoload = (value: string): value is Autoload => AUTOLOAD_LABELS.some(([key]) => key === value)
+
+const characterBar = (h: H, character: Character): Html =>
+  h.div(
+    [h.Class("toolbar character-bar")],
+    [
+      h.button([h.Id("characters"), h.OnClick(Message.ClickedCharacters())], ["\u2190 Characters"]),
+      h.strong(
+        [h.Class("character-name"), h.Style({ color: classCatalog(character.className).color })],
+        [character.name]
+      ),
+      h.span(
+        [h.Class("sub")],
+        [`${classCatalog(character.className).name}${character.realm ? `, ${character.realm}` : ""}`]
+      ),
+      h.label(
+        [h.Class("sub")],
+        [
+          "Level ",
+          h.input([
+            h.Type("number"),
+            h.Id("level"),
+            h.Min("1"),
+            h.Max("60"),
+            h.Style({ width: "62px" }),
+            h.Value(String(character.level)),
+            h.OnChange((level) => Message.ChangedCharacterLevel({ level }))
+          ])
         ]
-      : []),
-    ...(source
-      ? [
-          h.div(
-            [],
+      ),
+      h.button(
+        [h.Id("edit-character"), h.OnClick(Message.ClickedRenameCharacter({ id: character.id }))],
+        ["Edit character"]
+      )
+    ]
+  )
+
+const tabs = (h: H, character: Character, layout: NamedLayout): Html =>
+  h.div(
+    [h.Class("toolbar tabs"), h.Id("tabs")],
+    [
+      ...character.layouts.map((item) =>
+        h.button(
+          [h.Class(item.id === layout.id ? "tab on" : "tab"), h.OnClick(Message.PickedTab({ id: item.id }))],
+          [item.id === character.activeLayoutId ? `\u2605 ${item.name}` : item.name]
+        )
+      ),
+      tipButton(h, "new-layout", "+ New layout", Message.ClickedNewLayout())
+    ]
+  )
+
+const layoutActions = (h: H, character: Character, layout: NamedLayout): Html =>
+  h.div(
+    [h.Class("toolbar")],
+    [
+      h.input([
+        h.Type("text"),
+        h.Id("layout-name"),
+        h.Title("Layout name"),
+        h.Style({ width: "200px" }),
+        h.Value(layout.name),
+        h.OnChange((name) => Message.RenamedLayout({ name }))
+      ]),
+      tipButton(h, "duplicate", "Duplicate", Message.ClickedDuplicateLayout()),
+      tipButton(h, "delete", "Delete", Message.ClickedDeleteLayout(), [h.Disabled(character.layouts.length < 2)]),
+      layout.id === character.activeLayoutId
+        ? h.span([h.Class("active-note")], ["\u2605 Used in WoW"])
+        : tipButton(h, "make-active", "Use this one in WoW", Message.ClickedMakeActive()),
+      h.label(
+        [h.Class("sub")],
+        [
+          "In WoW: ",
+          h.select(
             [
-              "This is your own copy, so it doesn't get updates. ",
-              h.button(
-                [h.Id("open-source"), h.OnClick(Message.ClickedOpenSource({ id: source.id }))],
-                [`Open the updated "${source.plan.name}"`]
+              h.Id("autoload"),
+              h.OnChange((value) =>
+                isAutoload(value) ? Message.ChangedAutoload({ autoload: value }) : Message.SavedLocally()
               )
-            ]
+            ],
+            AUTOLOAD_LABELS.map(([key, label]) =>
+              h.option([h.Value(key), h.Selected((character.autoload ?? "ask") === key)], [label])
+            )
           )
         ]
-      : [])
-  ]
-  return parts.length ? [h.div([h.Class("banner"), h.Id("banner")], parts)] : []
-}
+      )
+    ]
+  )
 
 const setsToolbar = (h: H, plan: Plan): Html => {
   const names = controllerOf(plan).names
@@ -316,64 +379,17 @@ const details = (h: H, model: Model, plan: Plan): Html => {
   )
 }
 
-export const Editor = (h: H, model: Model, plan: Plan, hud: Html): Html => {
-  const builtin = isBuiltin(model.library.currentId)
-  return h.div(
+export const Editor = (h: H, model: Model, character: Character, layout: NamedLayout, plan: Plan, hud: Html): Html =>
+  h.div(
     [h.Class("panel")],
     [
+      characterBar(h, character),
+      tabs(h, character, layout),
+      layoutActions(h, character, layout),
+      ...banner(h, plan),
       h.div(
         [h.Class("toolbar")],
         [
-          h.label(
-            [h.Class("sub")],
-            [
-              "Layout ",
-              h.select([h.Id("layout-pick"), h.OnChange((id) => Message.PickedLayout({ id }))], layoutOptions(h, model))
-            ]
-          ),
-          h.input([
-            h.Type("text"),
-            h.Id("layout-name"),
-            h.Title("Layout name"),
-            h.Style({ width: "260px" }),
-            h.Value(plan.name),
-            h.Disabled(builtin),
-            h.OnChange((name) => Message.RenamedLayout({ name }))
-          ]),
-          tipButton(h, "new", "New", Message.ClickedNew()),
-          tipButton(h, "duplicate", "Duplicate", Message.ClickedDuplicate()),
-          tipButton(h, "delete", "Delete", Message.ClickedDelete(), [h.Disabled(builtin)])
-        ]
-      ),
-      ...banner(h, model, plan),
-      ...(builtin
-        ? [
-            h.p(
-              [h.Class("sub"), h.Id("readonly-hint")],
-              ["Built-in layouts are read-only. Change anything and it becomes your own copy."]
-            )
-          ]
-        : []),
-      h.div(
-        [h.Class("toolbar")],
-        [
-          h.label(
-            [h.Class("sub")],
-            [
-              "Class ",
-              h.select(
-                [
-                  h.Id("class-pick"),
-                  h.OnChange((value) =>
-                    isClass(value) ? Message.PickedClass({ className: value }) : Message.SavedLocally()
-                  )
-                ],
-                Object.entries(catalog.classes).map(([key, data]) =>
-                  h.option([h.Value(key), h.Selected(key === plan.class)], [data.name])
-                )
-              )
-            ]
-          ),
           h.label(
             [h.Class("sub")],
             [
@@ -389,21 +405,6 @@ export const Editor = (h: H, model: Model, plan: Plan, hud: Html): Html => {
                   h.option([h.Value(key), h.Selected(key === plan.controller)], [data.name])
                 )
               )
-            ]
-          ),
-          h.label(
-            [h.Class("sub")],
-            [
-              "Your level ",
-              h.input([
-                h.Type("number"),
-                h.Id("level"),
-                h.Min("1"),
-                h.Max("60"),
-                h.Style({ width: "62px" }),
-                h.Value(String(plan.level)),
-                h.OnChange((level) => Message.ChangedLevel({ level }))
-              ])
             ]
           )
         ]
@@ -445,7 +446,6 @@ export const Editor = (h: H, model: Model, plan: Plan, hud: Html): Html => {
       details(h, model, plan)
     ]
   )
-}
 
 const route = (h: H, button: Html, text: ReadonlyArray<Html | string>) =>
   h.div([h.Class("route")], [button, h.span([], [...text])])
@@ -473,16 +473,16 @@ export const GetItIntoWow = (h: H, model: Model): Html =>
           h.li(
             [],
             [
-              "Give PadPlan this layout. There are two ways; they do the same thing, so pick one.",
+              "Give PadPlan your layouts. There are two ways; pick one.",
               route(h, tipButton(h, "save-wow", "Download PadPlanData.lua", Message.ClickedDownloadLua()), [
-                "A small file holding this layout. Put it in ",
+                "One small file with the \u2605 active layout of every character here. Put it in ",
                 h.code([], ["World of Warcraft/_forever_/Interface/AddOns/PadPlan/"]),
                 ", replacing the one there. No typing in game, so it suits playing with only a controller."
               ]),
               route(h, tipButton(h, "addon-code", "Copy layout code", Message.ClickedCopyCode()), [
-                "This layout as one text code. In game, type ",
+                "This character's \u2605 active layout as text. Log in on that character, type ",
                 h.code([], ["/padplan import"]),
-                ", paste it and press Import (needs a keyboard). The same code also works in anyone's planner: Import, then paste."
+                ", paste it and press Import (needs a keyboard). It only goes to the character you're playing. The same code also works in anyone's planner: Import, then paste."
               ]),
               ...(model.codeText
                 ? [
@@ -503,9 +503,21 @@ export const GetItIntoWow = (h: H, model: Model): Html =>
           h.li(
             [],
             [
-              "Log in, or log out to the character list and back in. PadPlan puts every spell in place by itself, sets up the back buttons, and says what it did in chat. Spells you haven't learned yet go on by themselves when you learn them."
+              "Log in. PadPlan finds the character by its name and realm and only ever changes that character's bars; characters it has no layout for are left alone. What happens next is the \"In WoW\" setting above each character's layouts:"
             ]
-          )
+          ),
+          h.li(
+            [h.Class("plain")],
+            [
+              h.strong([], ["Ask me at login"]),
+              " (the default): a small window asks whether to put the new layout on your bars, with Apply and Not now buttons you can click with the trackpad mouse. ",
+              h.strong([], ["Apply automatically"]),
+              ": it just does it and says so in chat. ",
+              h.strong([], ["Off"]),
+              ": it only tells you a layout is waiting; click PadPlan in the addon menu (next to the minimap) to apply it."
+            ]
+          ),
+          h.li([h.Class("plain")], ["Spells you haven't learned yet go on by themselves when you learn them."])
         ]
       ),
       h.p(

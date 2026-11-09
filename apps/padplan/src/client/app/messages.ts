@@ -1,21 +1,31 @@
 import { Schema } from "effect"
 import { defineMessageUnion } from "foldkit/message"
-import { ClassId, ControllerId, Plan, SlotLocation } from "../../domain/Plan.ts"
+import { Autoload } from "../../domain/Character.ts"
+import { ControllerId, Plan, SlotLocation } from "../../domain/Plan.ts"
 import { User } from "../../features/account/Account.ts"
+import { SavedCharacter } from "../../features/characters/Saved.ts"
 import { Saved } from "../../features/layouts/Saved.ts"
 import { Library, Tip } from "./model.ts"
 
 export const Message = defineMessageUnion({
-  LoadedLibrary: { library: Schema.NullOr(Library) },
-  PickedLayout: { id: Schema.String },
+  LoadedLibrary: { library: Library },
+  OpenedCharacter: { id: Schema.String },
+  ClickedCharacters: {},
+  ClickedNewCharacter: {},
+  ClickedRenameCharacter: { id: Schema.String },
+  ClickedDeleteCharacter: { id: Schema.String },
+  ChangedDialog: { field: Schema.Literals(["name", "className", "level", "realm", "start"]), value: Schema.String },
+  ClickedConfirmDialog: {},
+  ClickedCancelDialog: {},
+  ChangedCharacterLevel: { level: Schema.String },
+  ChangedAutoload: { autoload: Autoload },
+  PickedTab: { id: Schema.String },
+  ClickedNewLayout: {},
   RenamedLayout: { name: Schema.String },
-  ClickedNew: {},
-  ClickedDuplicate: {},
-  ClickedDelete: {},
-  CreatedLayout: { id: Schema.String, plan: Plan },
-  PickedClass: { className: ClassId },
+  ClickedDuplicateLayout: {},
+  ClickedDeleteLayout: {},
+  ClickedMakeActive: {},
   PickedController: { controller: ControllerId },
-  ChangedLevel: { level: Schema.String },
   PickedSet: { index: Schema.Int },
   RenamedSet: { name: Schema.String },
   ToggledBackButtons: { on: Schema.Boolean },
@@ -24,7 +34,6 @@ export const Message = defineMessageUnion({
   ChangedBackNote: { id: Schema.String, note: Schema.String },
   ClickedMirror: {},
   ClickedFixKeys: {},
-  ClickedOpenSource: { id: Schema.String },
   ClickedSlot: { location: SlotLocation },
   RightClickedSlot: { location: SlotLocation },
   StartedDragSlot: { location: SlotLocation },
@@ -55,13 +64,13 @@ export const Message = defineMessageUnion({
   ChoseImportFile: { text: Schema.String },
   ReadImport: { plan: Schema.NullOr(Plan) },
   ClickedExport: {},
-  ShowedToast: { text: Schema.String },
   HidToast: { text: Schema.String },
   Downloaded: {},
   SavedLocally: {},
   GotAccount: { user: Schema.NullOr(User) },
+  GotServerCharacters: { characters: Schema.Array(SavedCharacter) },
   GotServerLayouts: { layouts: Schema.Array(Saved) },
-  SavedToServer: { layout: Schema.NullOr(Saved) },
+  SavedToServer: { saved: Schema.NullOr(SavedCharacter) },
   ChangedNicknameDraft: { nickname: Schema.String },
   ClickedSaveNickname: {},
   SavedNickname: { user: Schema.NullOr(User) }

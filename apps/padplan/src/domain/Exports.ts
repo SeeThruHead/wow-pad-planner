@@ -1,4 +1,6 @@
 import { Effect, Schema } from "effect"
+import { activeLayout, characterKey, planFor } from "./Character.ts"
+import type { Character } from "./Character.ts"
 import { DPAD, FACE, LAYERS, Plan } from "./Plan.ts"
 import type { Entry, Layer, Slots } from "./Plan.ts"
 import { backKeys, describe, otherKeys, slotBackIds } from "./Layout.ts"
@@ -149,3 +151,20 @@ export const readCode = Effect.fn("Exports.readCode")(function* (text: string) {
   const json = yield* jsonOf(text)
   return yield* Schema.decodeEffect(Schema.fromJsonString(Plan))(json).pipe(Effect.mapError(() => notACode))
 })
+
+const planTable = (plan: Plan): string => {
+  const lua = toLua(plan)
+  return lua.slice(lua.indexOf("PadPlanData = ") + "PadPlanData = ".length).trimEnd()
+}
+
+export const toLuaFile = (characters: ReadonlyArray<Character>): string => {
+  const entries = characters.flatMap((character) => {
+    const layout = activeLayout(character)
+    if (!layout) return []
+    const table = planTable(planFor(character, layout)).replace(/\n/g, "\n      ")
+    return [
+      `    [${luaString(characterKey(character))}] = {\n      autoload = ${luaString(character.autoload ?? "ask")},\n      plan = ${table},\n    },`
+    ]
+  })
+  return `-- Your characters' active layouts, from the gamepad bar planner.\nPadPlanData = {\n  version = 2,\n  characters = {\n${entries.join("\n")}\n  },\n}\n`
+}

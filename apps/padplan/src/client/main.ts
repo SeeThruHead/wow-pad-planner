@@ -16,7 +16,6 @@ Runtime.run(
     init: () => ({
       model: {
         library: emptyLibrary("local"),
-        builtinSets: {},
         selected: null,
         picked: null,
         dragging: null,
@@ -29,7 +28,8 @@ Runtime.run(
         importText: "",
         account: { _tag: "Unknown" as const },
         clock: 0,
-        nicknameDraft: ""
+        nicknameDraft: "",
+        dialog: null
       },
       commands: [Commands.LoadLibrary()]
     }),

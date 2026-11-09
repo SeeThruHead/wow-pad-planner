@@ -605,3 +605,102 @@ a {
 .stage.no-back > * {
   margin-top: -100px;
 }
+
+main.single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.character-bar {
+  align-items: center;
+}
+.character-name {
+  font-size: 18px;
+}
+.tabs {
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.tab {
+  border-radius: 6px 6px 0 0;
+}
+.active-note {
+  color: #ffd27a;
+  font-size: 14px;
+}
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.character-card {
+  position: relative;
+  text-align: left;
+  cursor: pointer;
+  padding: 14px 16px;
+  border: 1px solid var(--gold-dim);
+  border-radius: 10px;
+  background: linear-gradient(#2a1d10, #170f08);
+  min-height: 120px;
+}
+.character-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(255, 210, 110, 0.25);
+}
+.character-card-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.character-card-line {
+  font-size: 14px;
+}
+.character-card-edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+.character-card.new {
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  color: var(--gold);
+  border-style: dashed;
+}
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 40;
+}
+.dialog {
+  width: 380px;
+}
+.dialog-field {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.dialog-field input,
+.dialog-field select {
+  width: 100%;
+}
+.dialog-actions {
+  margin-top: 12px;
+}
+button.danger {
+  margin-left: auto;
+  border-color: #8a3a2a;
+}
+#wow li.plain {
+  list-style: none;
+  margin-left: -4px;
+}
