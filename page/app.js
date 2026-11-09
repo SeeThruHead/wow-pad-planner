@@ -278,13 +278,14 @@ const tipHtml = (tip) =>
   `${tip.line ? `<p>${escapeHtml(tip.line)}</p>` : ""}${tip.code ? `<pre>${escapeHtml(tip.code)}</pre>` : ""}${tip.place ? `<div class="tip-place">${escapeHtml(tip.place)}</div>` : ""}`;
 
 const tipTarget = (target) => {
-  const node = target instanceof Element ? target.closest(".slot, .spell, .ring") : null;
-  return node && tips.has(node) ? node : null;
+  const node = target instanceof Element ? target.closest(".slot, .spell, .ring, [data-tip]") : null;
+  if (!node) return null;
+  return tips.has(node) || node.dataset.tip ? node : null;
 };
 
 const showTip = (node) => {
   const tip = el("tip");
-  tip.innerHTML = tipHtml(tips.get(node));
+  tip.innerHTML = tipHtml(tips.get(node) || { title: node.textContent.trim(), line: node.dataset.tip });
   tip.hidden = false;
   const box = node.getBoundingClientRect();
   const width = tip.offsetWidth;
@@ -365,6 +366,7 @@ const renderStage = (plan) => {
     positioned("cluster-label", 488, 552, names.rt),
   ];
   const rings = [setTip(positioned("ring", 300, 140, RING_SVG("var(--friendly)")), ringTip(plan, "friendly")), setTip(positioned("ring", 640, 140, RING_SVG("var(--hostile)")), ringTip(plan, "hostile"))];
+  el("stage").classList.toggle("no-back", !usesBack(plan));
   el("stage").replaceChildren(...rings, ...LAYERS.flatMap((layer) => clusterNodes(plan, layer)), ...LAYERS.flatMap((layer) => backGridNodes(plan, layer)), ...labels);
 };
 
@@ -714,7 +716,7 @@ const addonLines = (plan) => {
     ...LAYERS.flatMap((layer) => addonRows(plan, set.layers[layer], layer === "base" ? DPAD : [...DPAD, ...FACE], ["b", String(index + 1), layer])),
   ]);
   const paddles = LAYERS.flatMap((layer) => addonRows(plan, plan.paddles[layer], slots, ["p", layer]));
-  return [["PADPLAN", "1"], ["name", addonText(plan.name)], ["class", plan.class], ["order", slots.join(",")], ["keys", backKeys(plan).join(",")], ["reserved", otherKeys(plan).join(",")], ...bars, ...paddles].map((fields) => fields.join("\t")).join("\n");
+  return [["PADPLAN", "1"], ["name", addonText(plan.name)], ["class", plan.class], ["order", slots.join(",")], ["keys", backKeys(plan).join(",")], ["reserved", otherKeys(plan).join(",")], ...bars, ...paddles, ["plan", JSON.stringify({ ...plan, activeSet: 0 })]].map((fields) => fields.join("\t")).join("\n");
 };
 
 const addonCode = (plan) => ADDON_PREFIX + btoa(Array.from(new TextEncoder().encode(addonLines(plan)), (byte) => String.fromCharCode(byte)).join(""));
@@ -727,15 +729,21 @@ const download = (name, text, type) => {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 };
 
-const toBase64Url = (bytes) => btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join("")).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const fromBase64Url = (text) => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 const streamBytes = async (bytes, transform) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(transform)).arrayBuffer());
 
-const shareCode = async (plan) => SHARE_PREFIX + toBase64Url(await streamBytes(new TextEncoder().encode(JSON.stringify(plan)), new CompressionStream("deflate-raw")));
+
+const planFromLayoutCode = (code) => {
+  const text = new TextDecoder().decode(Uint8Array.from(atob(code.slice(ADDON_PREFIX.length).replace(/\s+/g, "")), (c) => c.charCodeAt(0)));
+  const line = text.split("\n").find((row) => row.startsWith("plan\t"));
+  if (!line) throw new Error("this code was made before layout codes carried the whole layout");
+  return JSON.parse(line.slice(5));
+};
 
 const readShared = async (text) => {
   const trimmed = text.trim();
   if (trimmed.startsWith("{")) return JSON.parse(trimmed);
+  if (trimmed.startsWith(ADDON_PREFIX)) return planFromLayoutCode(trimmed);
   if (!trimmed.startsWith(SHARE_PREFIX)) throw new Error("not a layout code");
   return JSON.parse(new TextDecoder().decode(await streamBytes(fromBase64Url(trimmed.slice(SHARE_PREFIX.length)), new DecompressionStream("deflate-raw"))));
 };
@@ -776,16 +784,9 @@ const bind = () => {
     el("addon-code-text").value = code;
     el("addon-code-box").hidden = false;
     el("addon-code-text").select();
-    await navigator.clipboard.writeText(code).then(() => toast("Copied. In game: /padplan import, paste, Import, then /padplan apply."), () => toast("Copy the code from the box."));
+    await navigator.clipboard.writeText(code).then(() => toast("Layout code copied. Paste it in game with /padplan import, or in a planner with Import."), () => toast("Copy the code from the box."));
   });
   el("export").addEventListener("click", () => download(`${currentPlan().name.replace(/[^\w-]+/g, "-")}.json`, JSON.stringify(currentPlan(), null, 2), "application/json"));
-  el("share").addEventListener("click", async () => {
-    const code = await shareCode(currentPlan());
-    el("share-text").value = code;
-    el("share-box").hidden = false;
-    el("share-text").select();
-    await navigator.clipboard.writeText(code).then(() => toast("Layout code copied."), () => toast("Copy the code from the box."));
-  });
   el("import").addEventListener("click", () => { el("share-box").hidden = false; el("share-text").value = ""; el("share-text").focus(); });
   el("import-code").addEventListener("click", async () => importPlan(await readShared(el("share-text").value).catch(() => null)));
   el("import-file-button").addEventListener("click", () => el("import-file").click());

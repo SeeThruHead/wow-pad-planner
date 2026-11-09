@@ -75,16 +75,22 @@ await step("marking a back button as used elsewhere removes its slots and the cl
   assert.match(await page.locator("#steam-steps").innerText(), /Clash: LB4 and another back button both send F11/)
 })
 
-await step("a share code imports as a new layout", async () => {
-  await page.locator("#share").click()
-  await page.waitForFunction(() => document.getElementById("share-text").value.startsWith("WPP1:"))
-  const code = await page.locator("#share-text").inputValue()
-  assert.match(code, /^WPP1:/)
+await step("the layout code imports into another planner as a new layout", async () => {
+  await page.locator("#addon-code").click()
+  await page.waitForFunction(() => document.getElementById("addon-code-text").value.startsWith("PADPLAN1:"))
+  const code = await page.locator("#addon-code-text").inputValue()
   await page.locator("#import").click()
   await page.locator("#share-text").fill(code)
   await page.locator("#import-code").click()
   await page.waitForFunction(() => document.querySelectorAll("#layout-pick optgroup[label='My layouts'] option").length === 2)
   assert.equal(await page.locator("#layout-pick optgroup[label='My layouts'] option").count(), 2)
+})
+
+await step("buttons explain themselves on hover", async () => {
+  await page.locator("#export").scrollIntoViewIfNeeded()
+  await page.waitForTimeout(200)
+  await page.locator("#export").hover()
+  assert.match(await page.locator("#tip").innerText(), /WoW doesn't read it/)
 })
 
 await step("layouts survive a reload, and rename and delete work", async () => {
