@@ -171,7 +171,7 @@ local function SortedNames(set)
 end
 
 local function Place()
-    local result = { placed = 0, cleared = 0, skipped = {}, unlearned = {} }
+    local result = { placed = 0, cleared = 0, skipped = {}, unlearned = {}, back = {} }
     ForEachSlot(function(where, slot, entry)
         if not ValidSlot(slot) then
             if entry then result.skipped[#result.skipped + 1] = where .. " (" .. Describe(entry) .. "): no slot" end
@@ -187,6 +187,8 @@ local function Place()
         if ok then
             PlaceAction(slot)
             result.placed = result.placed + 1
+            local layer = where:match("^Back button (.-) %S+$")
+            if layer then result.back[layer] = (result.back[layer] or 0) + 1 end
         elseif reason == "not learned yet" then
             ClearSlot(slot)
             result.unlearned[Describe(entry)] = true
@@ -253,15 +255,47 @@ local function Signature(plan)
     return Serialize(plan) .. (PaddleSlots() and "|backhand" or "|nobackhand")
 end
 
+local function BackhandProblem()
+    if not SlashCmdList.BACKHAND then return "the SNRN Backhand addon isn't installed or is turned off in the AddOns list" end
+    local saved = BackhandCharDB and BackhandCharDB.fallbackActions
+    if type(saved) == "table" then
+        for _, panel in pairs(saved) do
+            if type(panel) == "table" and next(panel) then return "Backhand keeps this character's back-button spells in its own list (spells were dragged onto them before), so it has no action slots for PadPlan to fill. Clear them in Backhand's settings and log in again" end
+        end
+    end
+    return "Backhand hasn't reserved its 16 action slots on this character yet (it does that when it finds enough free gamepad slots); log in again"
+end
+
+local function BackSummary(result, plan)
+    local parts = {}
+    for _, layer in ipairs(LAYERS) do
+        parts[#parts + 1] = string.format("%s %d", LAYER_LABEL[layer], result.back[LAYER_LABEL[layer]] or 0)
+    end
+    return string.format("Back buttons (%s): %s.", table.concat(plan.paddleOrder, ", "), table.concat(parts, ", "))
+end
+
+local function KeysProblem(plan)
+    if type(BackhandDB) ~= "table" or type(BackhandDB.paddleKeys) ~= "table" then return nil end
+    local wrong = {}
+    for index, button in ipairs(plan.paddleOrder or {}) do
+        local want = (plan.paddleKeys or {})[index]
+        local have = BackhandDB.paddleKeys["P" .. index]
+        if want and want ~= "" and have ~= want:upper() then wrong[#wrong + 1] = string.format("%s should be %s but Backhand has %s", button, want, tostring(have)) end
+    end
+    return #wrong > 0 and table.concat(wrong, "; ") or nil
+end
+
 local function Report(result, plan, automatic)
     local unlearned = SortedNames(result.unlearned)
     local tail = #unlearned > 0 and string.format(" Not learned yet: %s.", table.concat(unlearned, ", ")) or ""
     Print("%s \"%s\": placed %d spells.%s", automatic and "Layout changed, applied" or "Applied", plan.name or "layout", result.placed, tail)
     for _, line in ipairs(result.skipped) do Print("  skipped %s", line) end
     local order = plan.paddleOrder or {}
-    if #order > 0 and not PaddleSlots() then
-        Print("The back buttons were left out: the SNRN Backhand addon isn't installed or has no slots on this character yet.")
-    end
+    if #order == 0 then return end
+    if not PaddleSlots() then return Print("Back buttons skipped: %s.", BackhandProblem()) end
+    Print(BackSummary(result, plan))
+    local keys = KeysProblem(plan)
+    if keys then Print("Back-button keys not set: %s.", keys) end
 end
 
 local function Apply(automatic)

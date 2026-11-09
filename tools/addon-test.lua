@@ -136,6 +136,7 @@ Login(first)
 Check(Printed(first, "Layout changed, applied \"Shane's level 10 Warlock (Steam Controller)\": placed"), "a new layout applies by itself at login, with one line saying so")
 Check(first.actions[503] ~= nil and first.actions[503][2] == 686, "back-button slots get their spells (R4 is Shadow Bolt)")
 Check(first.backhandCalls[1] == "keys F9 F10 F11 F12", "Backhand is given the four back-button keys in order")
+Check(Printed(first, "Back buttons (L4, L5, R4, R5): No trigger 4, LT 0, RT 0, LT+RT 0."), "chat says how many back-button spells went on each layer")
 Check(first.bindings.F9 == nil and first.bindings.F12 == nil and first.bindingsSaved and Printed(first, "Cleared the old key bindings on F9"), "the bag bindings already on those keys are cleared first")
 local function NotLearnedLine(world)
     for _, line in ipairs(world.printed) do
@@ -200,6 +201,19 @@ Load(replaced, "dist/shane-data.lua")
 PadPlanData.name = "A newer layout"
 Login(replaced)
 Check(PadPlanCharDB.plan == nil and Printed(replaced, "replaces the layout imported earlier") and Printed(replaced, "\"A newer layout\""), "a newly installed PadPlanData.lua replaces an older imported code")
+
+local noBackhand = Fresh(nil)
+Load(noBackhand, "dist/shane-data.lua")
+SlashCmdList.BACKHAND = nil
+BackhandCharDB = nil
+Login(noBackhand)
+Check(Printed(noBackhand, "Back buttons skipped: the SNRN Backhand addon isn't installed"), "chat says when back buttons are skipped because Backhand is missing")
+
+local oldBackhand = Fresh(nil)
+Load(oldBackhand, "dist/shane-data.lua")
+BackhandCharDB = { nativeSlots = {}, fallbackActions = { { [1] = { type = "spell", id = 686 } }, {}, {}, {} } }
+Login(oldBackhand)
+Check(Printed(oldBackhand, "keeps this character's back-button spells in its own list"), "chat says when Backhand keeps its own spell list instead of slots")
 
 local damaged = Fresh(nil)
 local damagedNs = Load(damaged, nil)

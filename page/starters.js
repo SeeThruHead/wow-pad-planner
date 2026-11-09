@@ -168,4 +168,37 @@ const STARTERS = [
         R5: { use: "slot", key: "F12", note: "" },
       },
     }),
+  starter("shane-60", "Shane's level 60 Warlock (Steam Controller)", "WARLOCK",
+    "Thumb-on-the-stick style for a level 60 Warlock: no attacks on any d-pad, all combat in set 1, and set 2 for rare and out-of-combat spells. The 16 back-button slots (four on each layer) carry most of the damage, so it can be cast without leaving the sticks. No trigger: Shadow Bolt, Corruption, Curse of Agony, Immolate, the spells pressed most. RT: the pet's interrupt (Spell Lock or Seduction), Searing Pain, Siphon Life, Conflagrate, plus Drain Soul, Fear, Shoot and Pet Attack on the face buttons. LT: Life Tap, Curse of Weakness, Drain Life and the emergency Healthstone on the face buttons, with Health Funnel, Dark Pact and the other curses on the back buttons. LT + RT: cooldowns (Death Coil, Howl of Terror, Amplify Curse, Shadowburn) and the AoE and big hitters (Rain of Fire, Hellfire, Soul Fire, Curse of Doom). The d-pads hold summons, pet commands, armor and stones (Healthstone, Soulstone, Spellstone, Firestone). Talent spells from all three trees are included; the ones you don't have are skipped. Voice chat is a long press of Select; its keys are listed as keys other tools send. The back buttons send F9, F10, F11 and F12 (L4, L5, R4, R5).",
+    [
+      {
+        base: { DU: "Summon Voidwalker", DR: "Summon Felhunter", DD: "Pet Follow", DL: "Demon Armor" },
+        rt: { X: "Drain Soul", Y: "Fear", A: "Shoot", B: "Pet Attack", DU: "Create Healthstone", DR: "Create Soulstone", DD: "Hearthstone", DL: "Summon Succubus" },
+        lt: { X: "Life Tap", Y: "Curse of Weakness", A: "Drain Life", B: "Use Healthstone", DU: "Pet Passive", DR: "Pet Defensive", DD: "Pet ability", DL: "Torment" },
+        both: { X: "Death Coil", Y: "Howl of Terror", A: "Amplify Curse", B: "Shadowburn", DU: "Inferno", DR: "Fel Domination", DD: "Create Spellstone", DL: "Create Firestone" },
+      },
+      {
+        base: { DU: "Summon Imp", DR: "Summon Incubus", DD: "Summon Felsteed", DL: "Ritual of Summoning" },
+        rt: { X: "Banish", Y: "Subjugate Demon", A: "Drain Mana", B: "Curse of Exhaustion", DU: "Unending Breath", DR: "Detect Invisibility", DD: "Sense Demons", DL: "Eye of Kilrogg" },
+        lt: { X: "Ritual of Doom", Y: "Demonic Sacrifice", A: "Soul Link", B: "Incinerate", DU: "Sacrifice", DR: "Soulstone me" },
+      },
+    ],
+    {
+      controller: "steam",
+      level: 60,
+      useBackButtons: true,
+      otherKeys: ["Home", "Insert", "Delete", "End", "Page Up", "Page Down"],
+      paddles: layers({
+        base: { R4: "Shadow Bolt", R5: "Corruption", L4: "Curse of Agony", L5: "Immolate" },
+        rt: { R4: "Seduce / Spell Lock", R5: "Searing Pain", L4: "Siphon Life", L5: "Conflagrate" },
+        lt: { R4: "Health Funnel", R5: "Dark Pact", L4: "Curse of Recklessness", L5: "Curse of Tongues" },
+        both: { R4: "Rain of Fire", R5: "Hellfire", L4: "Soul Fire", L5: "Curse of Doom" },
+      }),
+      back: {
+        L4: { use: "slot", key: "F9", note: "" },
+        L5: { use: "slot", key: "F10", note: "" },
+        R4: { use: "slot", key: "F11", note: "" },
+        R5: { use: "slot", key: "F12", note: "" },
+      },
+    }),
 ];

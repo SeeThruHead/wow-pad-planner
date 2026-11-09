@@ -34,7 +34,7 @@ await step("opens on the first starter, and Shane's preset uses four keys that w
 
 await step("every built-in layout renders without errors", async () => {
   const ids = await page.locator("#layout-pick option").evaluateAll((options) => options.map((option) => option.value).filter((value) => value.startsWith("builtin:")))
-  assert.equal(ids.length, 10)
+  assert.equal(ids.length, 11)
   for (const id of ids) {
     await page.selectOption("#layout-pick", id)
     assert.equal(await page.locator("#stage .slot:not(.back)").count(), 32)
