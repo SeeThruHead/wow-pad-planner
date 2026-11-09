@@ -379,6 +379,55 @@ const details = (h: H, model: Model, plan: Plan): Html => {
   )
 }
 
+const offerPanel = (h: H, model: Model): ReadonlyArray<Html> => {
+  const offer = model.offer
+  if (offer === null) return []
+  const title = offer.kind === "optimize" ? "Optimize for back buttons?" : "Keep the back-button spells?"
+  const intro =
+    offer.kind === "optimize"
+      ? "This controller has back buttons. PadPlan can move the spells you press most onto them, so they need no trigger, and free those trigger + face buttons. B stays as it is on every layer. Nothing is removed."
+      : "This controller has no back buttons, so the spells on them would not be reachable. PadPlan can move each one to a free slot (set 1 first, then set 2), so nothing disappears."
+  return [
+    h.div(
+      [h.Class("banner offer"), h.Id("offer")],
+      [
+        h.strong([], [title]),
+        h.p([], [intro]),
+        h.ul(
+          [h.Id("offer-moves")],
+          offer.moves.map((move) => h.li([], [`${move.name}: ${move.from} \u2192 ${move.to}`]))
+        ),
+        h.div(
+          [h.Class("toolbar")],
+          [
+            h.button([h.Class("on"), h.Id("offer-yes"), h.OnClick(Message.AcceptedOffer())], ["Yes, in a new tab"]),
+            h.button([h.Id("offer-no"), h.OnClick(Message.DismissedOffer())], ["No thanks"]),
+            h.span([h.Class("sub")], ["The current layout stays as it is."])
+          ]
+        )
+      ]
+    )
+  ]
+}
+
+const rearrangedNote = (h: H, model: Model, layout: NamedLayout): ReadonlyArray<Html> =>
+  model.rearranged !== null && model.rearranged.layoutId === layout.id
+    ? [
+        h.div(
+          [h.Class("banner"), h.Id("rearranged")],
+          [
+            h.div(
+              [],
+              [
+                "This tab is the rearranged copy; the original tab is unchanged. ",
+                h.button([h.Id("undo-rearrange"), h.OnClick(Message.UndidRearrange())], ["Undo"])
+              ]
+            )
+          ]
+        )
+      ]
+    : []
+
 export const Editor = (h: H, model: Model, character: Character, layout: NamedLayout, plan: Plan, hud: Html): Html =>
   h.div(
     [h.Class("panel")],
@@ -387,6 +436,8 @@ export const Editor = (h: H, model: Model, character: Character, layout: NamedLa
       tabs(h, character, layout),
       layoutActions(h, character, layout),
       ...banner(h, plan),
+      ...offerPanel(h, model),
+      ...rearrangedNote(h, model, layout),
       h.div(
         [h.Class("toolbar")],
         [

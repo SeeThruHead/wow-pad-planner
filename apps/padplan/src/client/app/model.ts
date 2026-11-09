@@ -41,6 +41,21 @@ export const Dialog = Schema.Struct({
 })
 export type Dialog = typeof Dialog.Type
 
+export const Move = Schema.Struct({ name: Schema.String, from: Schema.String, to: Schema.String })
+
+export const Offer = Schema.Struct({
+  kind: Schema.Literals(["optimize", "fold"]),
+  plan: Plan,
+  moves: Schema.Array(Move)
+})
+export type Offer = typeof Offer.Type
+
+export const Rearranged = Schema.Struct({
+  characterId: Schema.String,
+  layoutId: Schema.String,
+  originalId: Schema.String
+})
+
 export const Model = Schema.Struct({
   library: Library,
   selected: Schema.NullOr(SlotLocation),
@@ -56,6 +71,8 @@ export const Model = Schema.Struct({
   account: Account,
   clock: Schema.Int,
   nicknameDraft: Schema.String,
-  dialog: Schema.NullOr(Dialog)
+  dialog: Schema.NullOr(Dialog),
+  offer: Schema.NullOr(Offer),
+  rearranged: Schema.NullOr(Rearranged)
 })
 export type Model = typeof Model.Type

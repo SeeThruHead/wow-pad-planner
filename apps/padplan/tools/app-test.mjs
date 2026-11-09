@@ -76,6 +76,33 @@ await step("marking a layout active moves the star, and the file holds the activ
   assert.match(text, /name = "Dungeons"/)
 })
 
+await step("turning on back buttons offers to optimize into a new tab, with a preview and Undo", async () => {
+  await page.locator("#tabs .tab", { hasText: "Raid" }).click()
+  await texts("#tabs .tab.on", ["Raid"])
+  await page.selectOption("#controller-pick", "steam")
+  await page.waitForSelector("#use-back:not([disabled])")
+  await page.locator("#use-back").check()
+  await page.waitForSelector("#offer")
+  const moves = await page.locator("#offer-moves li").allInnerTexts()
+  assert.match(moves[0] ?? "", /: RT \+ X \(set 1\) \u2192 No trigger \+ L4/)
+  await page.locator("#offer-yes").click()
+  assert.deepEqual(await texts("#tabs .tab.on", ["Raid (back buttons)"]), ["Raid (back buttons)"])
+  assert.equal((await page.locator("#stage .slot.back[aria-label*=': empty']").count()) < 16, true)
+  await page.locator("#undo-rearrange").click()
+  assert.deepEqual(await texts("#tabs .tab.on", ["Raid"]), ["Raid"])
+  assert.equal(await page.locator("#tabs .tab", { hasText: "(back buttons)" }).count(), 0)
+})
+
+await step("switching to a controller without back buttons offers to keep those spells", async () => {
+  await page.locator("#tabs .tab", { hasText: "Dungeons" }).click()
+  await texts("#tabs .tab.on", ["★ Dungeons"])
+  await page.selectOption("#controller-pick", "xbox")
+  await page.waitForSelector("#offer")
+  assert.equal(await page.locator("#offer-moves li").count(), 16)
+  await page.locator("#offer-yes").click()
+  assert.deepEqual(await texts("#tabs .tab.on", ["Dungeons (no back buttons)"]), ["Dungeons (no back buttons)"])
+})
+
 await step("characters are created, edited and deleted from the character screen", async () => {
   await page.locator("#characters").click()
   await page.locator("#new-character").click()
@@ -96,10 +123,11 @@ await step("everything survives a reload", async () => {
   await page.reload()
   await page.waitForSelector(".character-card")
   await page.locator(".character-card").first().click()
-  assert.deepEqual(await texts("#tabs .tab", ["Warlock starter", "Raid", "★ Dungeons"]), [
+  assert.deepEqual(await texts("#tabs .tab", ["Warlock starter", "Raid", "★ Dungeons", "Dungeons (no back buttons)"]), [
     "Warlock starter",
     "Raid",
-    "★ Dungeons"
+    "★ Dungeons",
+    "Dungeons (no back buttons)"
   ])
 })
 

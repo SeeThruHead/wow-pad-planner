@@ -4,7 +4,10 @@ import { cleanName } from "../../domain/Character.ts"
 import type { Character, NamedLayout } from "../../domain/Character.ts"
 import { classCatalog } from "../../domain/Catalog.ts"
 import { addonCode, toLuaFile } from "../../domain/Exports.ts"
-import { fixKeys, mirrorDpad, withController } from "../../domain/Layout.ts"
+import { fixKeys, mirrorDpad, usesBack, withController } from "../../domain/Layout.ts"
+import { CONTROLLERS } from "../../domain/Controllers.ts"
+import { foldBackIntoSlots, hasBackSpells, optimizeForBack } from "../../domain/Optimize.ts"
+import type { Rearranged as RearrangedPlan } from "../../domain/Optimize.ts"
 import { ClassId, entryAt, isPlan, sameLocation, swap, withEntry } from "../../domain/Plan.ts"
 import type { Entry, Plan, SlotLocation } from "../../domain/Plan.ts"
 import { Nickname } from "../../features/account/Account.ts"
@@ -305,6 +308,58 @@ const backPatch = (
     back: { ...plan.back, [id]: { ...(plan.back[id] ?? { use: "slot", key: "F9", note: "" }), ...patch } }
   }))
 
+const offerOf = (kind: "optimize" | "fold", result: RearrangedPlan) =>
+  result.moves.length > 0 ? { kind, plan: result.plan, moves: result.moves } : null
+
+const switchController = (model: Model, controller: Plan["controller"]): Return => {
+  const before = currentPlan(model)
+  const after = withController(before, controller)
+  const result = edit({ ...model, offer: null }, () => after)
+  if (!usesBack(before) && usesBack(after))
+    return { ...result, model: { ...result.model, offer: offerOf("optimize", optimizeForBack(after)) } }
+  if (usesBack(before) && CONTROLLERS[controller].back.length === 0 && hasBackSpells(before)) {
+    return { ...result, model: { ...result.model, offer: offerOf("fold", foldBackIntoSlots(after)) } }
+  }
+  return result
+}
+
+const toggleBack = (model: Model, on: boolean): Return => {
+  const after = { ...currentPlan(model), useBackButtons: on }
+  const result = edit({ ...model, offer: null }, () => after)
+  return on && usesBack(after)
+    ? { ...result, model: { ...result.model, offer: offerOf("optimize", optimizeForBack(after)) } }
+    : result
+}
+
+const acceptOffer = (model: Model): Return => {
+  const offer = model.offer
+  const character = currentCharacter(model)
+  const layout = currentLayout(model)
+  if (offer === null || !character || !layout) return { model: { ...model, offer: null } }
+  const id = nextLayoutId(model.library)
+  const name = `${layout.name} (${offer.kind === "optimize" ? "back buttons" : "no back buttons"})`
+  const added = addLayout({ ...model, offer: null }, { id, name, plan: offer.plan })
+  const rearranged = { characterId: character.id, layoutId: id, originalId: layout.id }
+  return withToast(
+    { ...added, model: { ...added.model, rearranged } },
+    `Made the new tab "${name}". The original is unchanged.`
+  )
+}
+
+const undoRearrange = (model: Model): Return => {
+  const rearranged = model.rearranged
+  const character = model.library.characters.find((item) => item.id === rearranged?.characterId)
+  if (!rearranged || !character) return { model: { ...model, rearranged: null } }
+  const layouts = character.layouts.filter((layout) => layout.id !== rearranged.layoutId)
+  const activeLayoutId =
+    character.activeLayoutId === rearranged.layoutId ? rearranged.originalId : character.activeLayoutId
+  return saveCharacter(
+    { ...model, rearranged: null },
+    { ...character, layouts, activeLayoutId },
+    { currentLayoutId: rearranged.originalId }
+  )
+}
+
 const openCharacter = (model: Model, id: string): Return => {
   const character = model.library.characters.find((item) => item.id === id)
   return store(
@@ -359,7 +414,7 @@ export const update = (model: Model, message: Message): Return =>
         ...character,
         activeLayoutId: currentLayout(model)?.id ?? character.activeLayoutId
       })),
-    PickedController: ({ controller }) => edit(model, (plan) => withController(plan, controller)),
+    PickedController: ({ controller }) => switchController(model, controller),
     PickedSet: ({ index }) => edit({ ...model, selected: null }, (plan) => ({ ...plan, activeSet: index })),
     RenamedSet: ({ name }) =>
       edit(model, (plan) => {
@@ -368,7 +423,10 @@ export const update = (model: Model, message: Message): Return =>
         )
         return { ...plan, sets: [sets[0] ?? plan.sets[0], sets[1] ?? plan.sets[1], sets[2] ?? plan.sets[2]] }
       }),
-    ToggledBackButtons: ({ on }) => edit(model, (plan) => ({ ...plan, useBackButtons: on })),
+    ToggledBackButtons: ({ on }) => toggleBack(model, on),
+    AcceptedOffer: () => acceptOffer(model),
+    DismissedOffer: () => ({ model: { ...model, offer: null } }),
+    UndidRearrange: () => undoRearrange(model),
     ChangedBackUse: ({ id, use }) => backPatch(model, id, { use }),
     ChangedBackKey: ({ id, key }) => backPatch(model, id, { key }),
     ChangedBackNote: ({ id, note }) => backPatch(model, id, { note }),

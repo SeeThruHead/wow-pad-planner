@@ -704,3 +704,14 @@ button.danger {
   list-style: none;
   margin-left: -4px;
 }
+
+.offer ul {
+  margin: 6px 0;
+  padding-left: 20px;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+.offer p {
+  margin: 6px 0;
+}

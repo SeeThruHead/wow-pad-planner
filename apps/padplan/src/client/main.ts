@@ -29,7 +29,9 @@ Runtime.run(
         account: { _tag: "Unknown" as const },
         clock: 0,
         nicknameDraft: "",
-        dialog: null
+        dialog: null,
+        offer: null,
+        rearranged: null
       },
       commands: [Commands.LoadLibrary()]
     }),
