@@ -2,7 +2,7 @@
 
 Plan World of Warcraft: Forever's gamepad action bars for any class and controller, then put the layout on your bars in game with the PadPlan addon.
 
-**Open the planner:** https://seethruhead.github.io/wow-pad-planner/
+**Open the planner:** https://blog.shanekeulen.com/wow-pad-planner/
 
 ## What it does
 
