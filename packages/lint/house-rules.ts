@@ -126,6 +126,7 @@ const isTestFile = (file: string): boolean => file.endsWith(".test.ts") || posix
 
 const isEntryPoint = (file: string): boolean => {
   if (srcPath(file) === "app/server.ts") return true
+  if (srcPath(file) === "app/cli.ts") return true
 
   return /\/tools\/[^/]+\.ts$/.test(posix(file))
 }
@@ -498,7 +499,7 @@ const rules: Readonly<Record<string, Rule>> = {
       if (parts.property === undefined || !parts.property.startsWith("run")) return
       if (isEntryPoint(context.filename)) return
 
-      context.report({ node, message: "Effect.run* and runMain belong only in src/app/server.ts and tools/ scripts" })
+      context.report({ node, message: "Effect.run* and runMain belong only in src/app/server.ts, src/app/cli.ts and tools/ scripts" })
     }
   })),
 

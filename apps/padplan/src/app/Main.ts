@@ -4,6 +4,7 @@ import { FetchHttpClient, HttpRouter, HttpStaticServer } from "effect/http"
 import { Accounts } from "../features/account/AccountRepo.ts"
 import { Oidc } from "../features/account/Oidc.ts"
 import { signInRoutes, signInUnavailable } from "../features/account/routes.ts"
+import { Tokens } from "../features/admin/TokenRepo.ts"
 import { CharacterRepo } from "../features/characters/CharacterRepo.ts"
 import { LayoutStore } from "../features/layouts/LayoutRepo.ts"
 import * as Database from "../framework/Database.ts"
@@ -48,7 +49,7 @@ export const Main = Layer.unwrap(
     })
 
     return HttpRouter.serve(Layer.mergeAll(Routes, SignIn, Client(config.clientDir)), { disableLogger: true }).pipe(
-      Layer.provide(Layer.mergeAll(Accounts.sqlite, LayoutStore.sqlite, CharacterRepo.sqlite)),
+      Layer.provide(Layer.mergeAll(Accounts.sqlite, LayoutStore.sqlite, CharacterRepo.sqlite, Tokens.sqlite)),
       Layer.provide(Database.layer({ filename: `${config.dataDir}/padplan.db`, migrations })),
       Layer.provide(Layer.mergeAll(BunCrypto.layer, BunServices.layer, FetchHttpClient.layer)),
       Layer.provideMerge(BunHttpServer.layer({ port: config.port }))

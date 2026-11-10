@@ -12,6 +12,14 @@ export type Nickname = typeof Nickname.Type
 export const User = Schema.Struct({ id: UserId, nickname: Schema.NullOr(Nickname) })
 export type User = typeof User.Type
 
+export const UserRecord = Schema.Struct({
+  id: UserId,
+  subject: Schema.String,
+  nickname: Schema.NullOr(Nickname),
+  createdAt: Schema.String
+})
+export type UserRecord = typeof UserRecord.Type
+
 export class Unauthenticated extends Schema.TaggedError<Unauthenticated, { readonly brand: unique symbol }>()(
   "Unauthenticated",
   { message: Schema.String }

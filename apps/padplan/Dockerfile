@@ -17,6 +17,7 @@ COPY apps/padplan/package.json apps/padplan/
 COPY apps/padplan/src apps/padplan/src
 COPY --from=build /repo/apps/padplan/dist/client apps/padplan/dist/client
 WORKDIR /repo/apps/padplan
+RUN printf '#!/bin/sh\nexec bun /repo/apps/padplan/src/app/cli.ts "$@"\n' > /usr/local/bin/padplan && chmod 755 /usr/local/bin/padplan
 USER 1000:1000
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/data REVISION=$REVISION CLIENT_DIR=/repo/apps/padplan/dist/client BUN_RUNTIME_TRANSPILER_CACHE_PATH=0
 EXPOSE 3000
