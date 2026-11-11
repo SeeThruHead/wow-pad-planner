@@ -17,6 +17,9 @@ const expected = [
   "casts.ts house(no-casts) 1",
   "comments.ts house(no-comments) 1",
   "days.ts house(days-from-clock) 3",
+  "deterministic.ts effecttsgo(global-date) 1",
+  "deterministic.ts effecttsgo(global-date) 1",
+  "deterministic.ts effecttsgo(global-random) 1",
   "deterministic.ts house(deterministic) 1",
   "deterministic.ts house(deterministic) 1",
   "deterministic.ts house(deterministic) 1",
@@ -66,7 +69,17 @@ const textOf = (stream: ReadableStream<Uint8Array>) =>
 
 const lintFixtures = Effect.gen(function* () {
   const child = Bun.spawn(
-    ["./node_modules/.bin/oxlint", "--no-ignore", "-c", "fixtures.oxlintrc.json", "-f", "json", "fixtures"],
+    [
+      "./node_modules/.bin/effect-tsgo",
+      "--tsrs-lint",
+      "oxlint",
+      "--no-ignore",
+      "-c",
+      "fixtures.oxlintrc.json",
+      "-f",
+      "json",
+      "fixtures"
+    ],
     { stdout: "pipe", stderr: "pipe" }
   )
   const [stdout, stderr] = yield* Effect.all([textOf(child.stdout), textOf(child.stderr)])
@@ -75,7 +88,7 @@ const lintFixtures = Effect.gen(function* () {
     Effect.mapError(
       () =>
         new NoReport({
-          hint: "oxlint printed no report; an unpatched oxlint has no effecttsgo plugin, run `bun run patch`",
+          hint: "oxlint printed no report; run it through effect-tsgo --tsrs-lint, which loads the effecttsgo plugin",
           stderr
         })
     )
@@ -83,7 +96,7 @@ const lintFixtures = Effect.gen(function* () {
 })
 
 it.effect(
-  "each house rule, and the Effect rules only a patched oxlint has, report exactly the fixture lines they should, and clean code reports nothing",
+  "each house rule, and the Effect rules only effect-tsgo's oxlint has, report exactly the fixture lines they should, and clean code reports nothing",
   () =>
     Effect.gen(function* () {
       const report = yield* lintFixtures

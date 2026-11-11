@@ -320,7 +320,16 @@ const templateText = (node: unknown): string => {
 
 const textOf = (value: unknown): string => (Predicate.isString(value) ? value : "")
 
-const logCalls = new Set(["log", "logTrace", "logDebug", "logInfo", "logWarning", "logError", "logFatal", "logWithLevel"])
+const logCalls = new Set([
+  "log",
+  "logTrace",
+  "logDebug",
+  "logInfo",
+  "logWarning",
+  "logError",
+  "logFatal",
+  "logWithLevel"
+])
 
 const ownsWideEvents = (file: string): boolean => srcPath(file) === "framework/WideEvent.ts"
 
@@ -332,7 +341,9 @@ const disablesLogger = (options: unknown): boolean => {
   const properties = field(options, "properties")
   if (!Array.isArray(properties)) return false
 
-  return properties.some((property) => nameOf(field(property, "key")) === "disableLogger" && isTrue(field(property, "value")))
+  return properties.some(
+    (property) => nameOf(field(property, "key")) === "disableLogger" && isTrue(field(property, "value"))
+  )
 }
 
 const optionsOf = (node: unknown): unknown => {
@@ -499,7 +510,10 @@ const rules: Readonly<Record<string, Rule>> = {
       if (parts.property === undefined || !parts.property.startsWith("run")) return
       if (isEntryPoint(context.filename)) return
 
-      context.report({ node, message: "Effect.run* and runMain belong only in src/app/server.ts, src/app/cli.ts and tools/ scripts" })
+      context.report({
+        node,
+        message: "Effect.run* and runMain belong only in src/app/server.ts, src/app/cli.ts and tools/ scripts"
+      })
     }
   })),
 

@@ -4,6 +4,7 @@ import { cleanName } from "../../domain/Character.ts"
 import type { Character, NamedLayout } from "../../domain/Character.ts"
 import { classCatalog } from "../../domain/Catalog.ts"
 import { addonCode, toLuaFile } from "../../domain/Exports.ts"
+import { toPrettyJson } from "../../domain/Json.ts"
 import { fixKeys, mirrorDpad, usesBack, withController } from "../../domain/Layout.ts"
 import { CONTROLLERS } from "../../domain/Controllers.ts"
 import { foldBackIntoSlots, hasBackSpells, optimizeForBack } from "../../domain/Optimize.ts"
@@ -510,7 +511,7 @@ export const update = (model: Model, message: Message): Return =>
       commands: [
         Commands.Download({
           name: fileName(currentPlan(model)),
-          text: JSON.stringify(currentPlan(model), null, 2),
+          text: toPrettyJson(currentPlan(model)),
           type: "application/json"
         })
       ]

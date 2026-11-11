@@ -3,6 +3,7 @@ import { activeLayout, characterKey, planFor } from "./Character.ts"
 import type { Character } from "./Character.ts"
 import { DPAD, FACE, LAYERS, Plan } from "./Plan.ts"
 import type { Entry, Layer, Slots } from "./Plan.ts"
+import { toJson } from "./Json.ts"
 import { backKeys, describe, otherKeys, slotBackIds } from "./Layout.ts"
 
 export const ADDON_PREFIX = "PADPLAN1:"
@@ -97,7 +98,7 @@ export const addonLines = (plan: Plan): string => {
     ["reserved", otherKeys(plan).join(",")],
     ...bars,
     ...paddles,
-    ["plan", JSON.stringify({ ...plan, activeSet: 0 })]
+    ["plan", toJson({ ...plan, activeSet: 0 })]
   ]
     .map((fields) => fields.join("\t"))
     .join("\n")
