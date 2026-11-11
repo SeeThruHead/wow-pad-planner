@@ -4,6 +4,12 @@ COPY . .
 RUN bun install --frozen-lockfile --ignore-scripts --filter padplan
 RUN cd apps/padplan && bun run build:client
 
+FROM oven/bun:1.4.2 AS check
+WORKDIR /repo
+COPY . .
+RUN bun install --frozen-lockfile --ignore-scripts
+RUN bun run check
+
 FROM oven/bun:1.4.2 AS production-dependencies
 WORKDIR /repo
 COPY . .

@@ -8,6 +8,8 @@ jobs:
     runs-on: boat
     steps:
       - uses: actions/checkout@v4
+      - name: Check (typecheck, lint, format, tests)
+        run: docker build --platform linux/amd64 --target check --progress plain -f apps/padplan/Dockerfile .
       - name: Publish
         env:
           IMAGE: ${{ vars.IMAGE }}

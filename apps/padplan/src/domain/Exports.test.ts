@@ -11,7 +11,7 @@ const starter = (id: string): Plan => {
   return found.plan
 }
 
-const legacy = (file: string) => readFileSync(new URL(`../../../../dist/${file}`, import.meta.url), "utf8")
+const legacy = (file: string) => readFileSync(new URL(`./legacy/${file}`, import.meta.url), "utf8")
 
 describe("exports", () => {
   it("writes the same PadPlanData.lua as the first planner", () => {
