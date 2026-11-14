@@ -1,16 +1,20 @@
 FROM oven/bun:1.4.2 AS build
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 WORKDIR /repo
 COPY . .
 RUN bun install --frozen-lockfile --ignore-scripts --filter padplan
 RUN cd apps/padplan && bun run build:client
 
 FROM oven/bun:1.4.2 AS check
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
+ARG MOON_BUILTIN_REGISTRY_HOST=""
 WORKDIR /repo
 COPY . .
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run check
 
 FROM oven/bun:1.4.2 AS production-dependencies
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 WORKDIR /repo
 COPY . .
 RUN bun install --frozen-lockfile --ignore-scripts --production --filter padplan --linker hoisted

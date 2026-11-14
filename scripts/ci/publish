@@ -5,7 +5,7 @@ registry="${IMAGE%%/*}"
 tag="$IMAGE:$GITHUB_SHA"
 printf '%s' "$REGISTRY_TOKEN" | docker login "$registry" -u sth --password-stdin
 docker build --platform linux/amd64 --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-  --build-arg "REVISION=${GITHUB_SHA:0:7}" -f apps/padplan/Dockerfile -t "$tag" -t "$IMAGE:latest" .
+  --build-arg "REVISION=${GITHUB_SHA:0:7}" --build-arg "NPM_CONFIG_REGISTRY=${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}" -f apps/padplan/Dockerfile -t "$tag" -t "$IMAGE:latest" .
 docker push "$tag"
 docker push "$IMAGE:latest"
 digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")"
